@@ -1159,11 +1159,6 @@ button:active {
   transform: translateY(0);
 }
 
-/* =======================================================================
-   MONO DARK OVERRIDE (tume taust + valge tekst) — paste THIS at file end
-   ======================================================================= */
-
-/* Base variables */
 :root {
   --bg: #050505 !important;
   --bg2: #0b0b0c !important;
@@ -1174,7 +1169,6 @@ button:active {
   --muted: rgba(255, 255, 255, 0.68) !important;
   --line: rgba(255, 255, 255, 0.14) !important;
 
-  /* neutralize “F1 accents” */
   --accent: rgba(255, 255, 255, 0.92) !important;
   --accent2: rgba(255, 255, 255, 0.78) !important;
   --yellow: rgba(255, 255, 255, 0.78) !important;
@@ -1191,7 +1185,6 @@ button:active {
   background: rgba(255, 255, 255, 0.14) !important;
 }
 
-/* Smooth dark background */
 body {
   color: var(--text) !important;
   background:
@@ -1226,7 +1219,6 @@ body::after {
   mix-blend-mode: overlay !important;
 }
 
-/* Brand pill (no blue/red gradient, smaller) */
 .brand {
   font-weight: 950 !important;
   letter-spacing: 0.4px !important;
@@ -1238,14 +1230,12 @@ body::after {
   box-shadow: none !important;
 }
 
-/* Focus styles monochrome */
 input:focus,
 select:focus {
   border-color: rgba(255, 255, 255, 0.28) !important;
   box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.08) !important;
 }
 
-/* Kill colorful glows */
 .menu__btn::before {
   background: radial-gradient(
     900px 220px at 20% 0%,
@@ -1288,7 +1278,6 @@ select:focus {
     ) !important;
 }
 
-/* Buttons (mono) */
 .menu__btn--active {
   border-color: rgba(255, 255, 255, 0.28) !important;
   background: rgba(255, 255, 255, 0.1) !important;
@@ -1311,7 +1300,6 @@ select:focus {
   background: rgba(255, 255, 255, 0.095) !important;
 }
 
-/* Active game highlight (mono) */
 .game-item--active {
   border-color: rgba(255, 255, 255, 0.26) !important;
   box-shadow:
@@ -1319,7 +1307,6 @@ select:focus {
     0 0 18px rgba(255, 255, 255, 0.06) !important;
 }
 
-/* X pills + badges + tags (mono) */
 .x-good,
 .x-bad {
   color: rgba(255, 255, 255, 0.92) !important;

@@ -2220,12 +2220,10 @@ updateShuffleButtonsState();
 
 console.log("app.js fully initialized✅");
 
-/* ===== Theme toggle + keyboard shortcuts ===== */
 (function () {
   const themeBtn = document.getElementById("theme-toggle");
   const KEY = "bt_theme";
 
-  // init theme
   try {
     const saved = localStorage.getItem(KEY);
     if (saved === "light") document.body.classList.add("light-mode");
@@ -2246,10 +2244,6 @@ console.log("app.js fully initialized✅");
     });
   }
 
-  // Shortcuts (non-destructive):
-  // - "/" focuses stats search or archive search depending on current view
-  // - Esc closes finish modal if open, otherwise focuses win input during opening
-  // - ArrowUp/ArrowDown cycles active game during opening (when play phase is visible)
   document.addEventListener("keydown", (e) => {
     const tag =
       e.target && e.target.tagName ? e.target.tagName.toLowerCase() : "";
@@ -2277,7 +2271,6 @@ console.log("app.js fully initialized✅");
     }
 
     if (!typing && e.key === "/") {
-      // focus search in active view
       const statsView = document.getElementById("view-stats");
       const archiveView = document.getElementById("view-archive");
       const statsVisible = statsView && !statsView.hasAttribute("hidden");
@@ -2297,7 +2290,6 @@ console.log("app.js fully initialized✅");
 
     if (!isPlayVisible) return;
 
-    // Arrow keys cycle active game (only if not typing in an input)
     if (typing) return;
 
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
