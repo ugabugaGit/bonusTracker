@@ -1341,3 +1341,107 @@ h1,
 .brand {
   letter-spacing: 0.6px;
 }
+
+input[type="email"],
+input[type="password"] {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 10px 12px;
+  outline: none;
+}
+
+input[type="email"]:focus,
+input[type="password"]:focus {
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.06);
+}
+
+.authmini {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.authmini__status {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.72);
+  white-space: nowrap;
+}
+
+.authmodal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(10px);
+  z-index: 9999;
+}
+
+.authmodal.is-open {
+  display: flex;
+}
+
+.authmodal__panel {
+  width: min(440px, calc(100vw - 24px));
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(18, 18, 18, 0.92);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+.authmodal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.authmodal__title {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.authmodal__close {
+  padding: 8px 10px;
+  border-radius: 12px;
+}
+
+.authmodal__body {
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.authmodal__field {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.authmodal__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.authmodal__hint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+  min-height: 16px;
+}
+
+.authmodal__signuponly {
+  display: none;
+}
+.authmodal.is-signup .authmodal__signuponly {
+  display: grid;
+}
