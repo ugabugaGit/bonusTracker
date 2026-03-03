@@ -1,5 +1,14 @@
 console.log("Bonus Opening Tracker: app.js loaded");
 
+const SUPABASE_URL = "https://yqumvbayhsjqrvyfgdbx.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_6F6FG3fUChpZ-FKj1CEf9w_yWou2Eh-";
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+sb.auth.onAuthStateChange((event, session) => {
+  console.log("[Supabase auth]", event, session?.user?.email ?? null);
+});
+
 const views = {
   stats: document.getElementById("view-stats"),
   archive: document.getElementById("view-archive"),
