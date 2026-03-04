@@ -23,6 +23,7 @@ function showView(viewKey) {
     renderGameProfitChart();
     renderBankrollChart();
     renderHitStats();
+    renderWinDistributionChart();
   }
 }
 
@@ -2455,6 +2456,7 @@ if (analyticsView) {
       renderGameProfitChart();
       renderBankrollChart();
       renderHitStats();
+      renderWinDistributionChart();
     }
   });
 
@@ -3083,6 +3085,95 @@ function renderHitStats() {
   document.getElementById("hit-50x").textContent = hits50;
   document.getElementById("hit-100x").textContent = hits100;
   document.getElementById("hit-500x").textContent = hits500;
+}
+
+let winDistributionChart;
+
+function renderWinDistributionChart() {
+  const archive = loadArchive();
+  if (!archive) return;
+
+  let bucket0_10 = 0;
+  let bucket10_50 = 0;
+  let bucket50_100 = 0;
+  let bucket100_500 = 0;
+  let bucket500 = 0;
+
+  archive.forEach((opening) => {
+    opening.games.forEach(g => {
+
+      const win = Number(g.win);
+      const bet = Number(g.bet);
+
+      if (!win || !bet) return;
+
+      const x = win / bet;
+
+      if (x < 10) bucket0_10++;
+      else if (x < 50) bucket10_50++;
+      else if (x < 100) bucket50_100++;
+      else if (x < 500) bucket100_500++;
+      else bucket500++;
+
+    });
+  });
+
+  const data = [
+    bucket0_10,
+    bucket10_50,
+    bucket50_100,
+    bucket100_500,
+    bucket500,
+  ];
+
+  const ctx = document.getElementById("winDistributionChart");
+  if (!ctx) return;
+
+  if (winDistributionChart) {
+    winDistributionChart.destroy();
+  }
+
+  winDistributionChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: ["0–10x", "10–50x", "50–100x", "100–500x", "500x+"],
+      datasets: [
+        {
+          label: "Wins",
+          data: data,
+          borderWidth: 2,
+          borderRadius: 8,
+          backgroundColor: [
+            "rgba(255,99,132,0.7)",
+            "rgba(255,159,64,0.7)",
+            "rgba(255,205,86,0.7)",
+            "rgba(75,192,192,0.7)",
+            "rgba(54,162,235,0.7)",
+          ],
+        },
+      ],
+    },
+
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+
+      plugins: {
+        legend: { display: false },
+      },
+
+      scales: {
+        x: {
+          ticks: { color: "#fff" },
+          grid: { color: "rgba(255,255,255,0.05)" },
+        },
+        y: {
+          ticks: { color: "#fff" },
+          grid: { color: "rgba(255,255,255,0.05)" },
+        },
+      },
+    },
+  });
 }
 
 console.log("app.js fully initialized✅");
