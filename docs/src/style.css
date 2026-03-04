@@ -1458,3 +1458,15 @@ input[type="password"]:focus {
 .leaderboard-x {
   font-weight: 600;
 }
+.rtp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 10px;
+}
+
+.rtp-grid h4 {
+  margin-bottom: 6px;
+  font-size: 14px;
+  opacity: 0.8;
+}

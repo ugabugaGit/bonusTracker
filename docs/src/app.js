@@ -2435,6 +2435,7 @@ if (analyticsView) {
       renderProfitChart();
       renderAnalyticsCards();
       renderBiggestWins();
+      renderGameRTP();
     }
   });
 
@@ -2555,6 +2556,76 @@ function renderBiggestWins() {
     `;
 
     tbody.appendChild(tr);
+  });
+}
+
+function renderGameRTP() {
+  const archive = loadArchive();
+
+  const bestBody = document.getElementById("rtp-best");
+  const worstBody = document.getElementById("rtp-worst");
+
+  if (!bestBody || !worstBody) return;
+
+  const games = {};
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      if (g.win === null || g.win === undefined) return;
+
+      const name = g.name;
+
+      if (!games[name]) {
+        games[name] = {
+          bet: 0,
+          win: 0,
+        };
+      }
+
+      games[name].bet += Number(g.bet);
+      games[name].win += Number(g.win);
+    });
+  });
+
+  const list = Object.entries(games).map(([name, data]) => {
+    const rtp = data.win / data.bet;
+
+    return {
+      name,
+      rtp,
+    };
+  });
+
+  list.sort((a, b) => b.rtp - a.rtp);
+
+  const best = list.slice(0, 5);
+  const worst = [...list].reverse().slice(0, 5);
+
+  bestBody.innerHTML = "";
+  worstBody.innerHTML = "";
+
+  best.forEach((g, i) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${g.name}</td>
+      <td>${(g.rtp * 100).toFixed(1)}%</td>
+    `;
+
+    bestBody.appendChild(tr);
+  });
+
+  worst.forEach((g, i) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${g.name}</td>
+      <td>${(g.rtp * 100).toFixed(1)}%</td>
+    `;
+
+    worstBody.appendChild(tr);
   });
 }
 
