@@ -1,223 +1,5 @@
 console.log("Bonus Opening Tracker: app.js loaded");
 
-const SUPABASE_URL = "https://yqumvbayhsjqrvyfgdbx.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_6F6FG3fUChpZ-FKj1CEf9w_yWou2Eh-";
-
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-sb.auth.onAuthStateChange((event, session) => {
-  console.log("[Supabase auth]", event, session?.user?.email ?? null);
-});
-
-document.addEventListener("DOMContentLoaded", () => {
-  const authModal = document.getElementById("authModal");
-  const authLogin = document.getElementById("auth-login");
-  const authCreate = document.getElementById("auth-create");
-  const authLogout = document.getElementById("auth-logout");
-  const authClose = document.getElementById("auth-close");
-  const authMiniStatus = document.getElementById("auth-mini-status");
-
-  const authTitle = authModal?.querySelector(".authmodal__title");
-  const nameWrap = document.getElementById("authNameWrap");
-  const confirmWrap = document.getElementById("authConfirmWrap");
-
-  const elDisplayName = document.getElementById("authDisplayName");
-  const elEmail = document.getElementById("authEmail");
-  const elPass = document.getElementById("authPass");
-  const elPass2 = document.getElementById("authPass2");
-
-  const authSubmit = document.getElementById("auth-submit");
-  const authHint = document.getElementById("authHint");
-
-  if (
-    !authModal ||
-    !authLogin ||
-    !authCreate ||
-    !authLogout ||
-    !authClose ||
-    !authSubmit
-  ) {
-    console.warn(
-      "[Auth] Markup missing. Check ids: authModal, auth-login, auth-create, auth-logout, auth-close, auth-submit",
-    );
-    return;
-  }
-
-  let mode = "login";
-
-  function getDisplayName(session) {
-    const user = session?.user;
-    const md = user?.user_metadata || {};
-    return md.display_name || md.full_name || md.name || null;
-  }
-
-  function setMode(nextMode) {
-    mode = nextMode === "signup" ? "signup" : "login";
-
-    const isSignup = mode === "signup";
-    authModal.classList.toggle("is-signup", isSignup);
-
-    if (nameWrap) nameWrap.style.display = isSignup ? "" : "none";
-    if (confirmWrap) confirmWrap.style.display = isSignup ? "" : "none";
-
-    if (authTitle)
-      authTitle.textContent = isSignup ? "Create Account" : "Log in";
-    authSubmit.textContent = isSignup ? "Create account" : "Log in";
-
-    if (elPass)
-      elPass.setAttribute(
-        "autocomplete",
-        isSignup ? "new-password" : "current-password",
-      );
-    if (elPass2)
-      elPass2?.setAttribute(
-        "autocomplete",
-        isSignup ? "new-password" : "new-password",
-      );
-
-    if (authHint) authHint.textContent = "";
-
-    setTimeout(() => {
-      if (isSignup) elDisplayName?.focus();
-      else elEmail?.focus();
-    }, 0);
-  }
-
-  function openAuthModal(nextMode) {
-    authModal.classList.add("is-open");
-    authModal.setAttribute("aria-hidden", "false");
-    setMode(nextMode);
-  }
-
-  function closeAuthModal() {
-    authModal.classList.remove("is-open");
-    authModal.setAttribute("aria-hidden", "true");
-  }
-
-  authLogin.addEventListener("click", () => openAuthModal("login"));
-  authCreate.addEventListener("click", () => openAuthModal("signup"));
-  authClose.addEventListener("click", closeAuthModal);
-
-  authModal.addEventListener("click", (e) => {
-    if (e.target === authModal) closeAuthModal();
-  });
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && authModal.classList.contains("is-open"))
-      closeAuthModal();
-  });
-
-  function setAuthUI(session) {
-    const user = session?.user;
-    const displayName = getDisplayName(session);
-
-    if (user) {
-      authMiniStatus.textContent = displayName || "Logged in";
-      authLogin.style.display = "none";
-      authCreate.style.display = "none";
-      authLogout.style.display = "";
-    } else {
-      authMiniStatus.textContent = "Not logged in";
-      authLogin.style.display = "";
-      authCreate.style.display = "";
-      authLogout.style.display = "none";
-    }
-  }
-
-  async function doLogin() {
-    const email = elEmail?.value?.trim() || "";
-    const password = elPass?.value || "";
-
-    if (!email || !password) {
-      if (authHint) authHint.textContent = "Enter email and password.";
-      return;
-    }
-
-    if (authHint) authHint.textContent = "Logging in...";
-    const { data, error } = await sb.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) {
-      if (authHint) authHint.textContent = "Login error: " + error.message;
-      return;
-    }
-    setAuthUI(data.session);
-    closeAuthModal();
-  }
-
-  async function doSignup() {
-    const display_name = elDisplayName?.value?.trim() || "";
-    const email = elEmail?.value?.trim() || "";
-    const password = elPass?.value || "";
-    const password2 = elPass2?.value || "";
-
-    if (!display_name) {
-      if (authHint) authHint.textContent = "Display name is required.";
-      return;
-    }
-    if (!email || !password) {
-      if (authHint) authHint.textContent = "Email and password are required.";
-      return;
-    }
-    if (password !== password2) {
-      if (authHint) authHint.textContent = "Passwords do not match.";
-      return;
-    }
-
-    if (authHint) authHint.textContent = "Creating account...";
-    const { data, error } = await sb.auth.signUp({
-      email,
-      password,
-      options: { data: { display_name } },
-    });
-
-    if (error) {
-      if (authHint) authHint.textContent = "Sign up error: " + error.message;
-      return;
-    }
-
-    if (data.session) {
-      setAuthUI(data.session);
-      closeAuthModal();
-    } else {
-      if (authHint)
-        authHint.textContent =
-          "Account created. Check your email to confirm, then log in.";
-    }
-  }
-
-  authSubmit.addEventListener("click", async () => {
-    if (mode === "signup") await doSignup();
-    else await doLogin();
-  });
-
-  [elDisplayName, elEmail, elPass, elPass2].forEach((el) => {
-    el?.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") authSubmit.click();
-    });
-  });
-
-  authLogout.addEventListener("click", async () => {
-    const { error } = await sb.auth.signOut();
-    if (error) return alert("Logout error: " + error.message);
-    setAuthUI(null);
-  });
-
-  sb.auth.getSession().then(({ data }) => setAuthUI(data.session));
-  sb.auth.onAuthStateChange((_event, session) => setAuthUI(session));
-});
-
-sb.auth.getSession().then(({ data }) => {
-  setAuthUI(data.session);
-  if (data.session) loadOpeningsFromCloud();
-});
-
-sb.auth.onAuthStateChange((_event, session) => {
-  setAuthUI(session);
-  if (session) loadOpeningsFromCloud();
-});
-
 const views = {
   stats: document.getElementById("view-stats"),
   archive: document.getElementById("view-archive"),
@@ -1512,72 +1294,6 @@ function getNextArchiveNumber() {
   return next;
 }
 
-let _archiveSyncTimer = null;
-let _archiveSyncInFlight = false;
-
-function requestArchiveSync() {
-  if (_archiveSyncTimer) clearTimeout(_archiveSyncTimer);
-  _archiveSyncTimer = setTimeout(() => {
-    syncArchiveFromCloud();
-  }, 150);
-}
-
-async function syncArchiveFromCloud() {
-  if (!sb || !sb.auth || !sb.from) return;
-  if (_archiveSyncInFlight) return;
-  _archiveSyncInFlight = true;
-  try {
-    const { data: sessData, error: sessErr } = await sb.auth.getSession();
-    if (sessErr) throw sessErr;
-    const session = sessData?.session;
-    if (!session) return;
-
-    const { data, error } = await sb
-      .from("openings")
-      .select("payload,created_at")
-      .order("created_at", { ascending: false })
-      .limit(1000);
-
-    if (error) throw error;
-
-    const remote = (data || [])
-      .map((r) => r && r.payload)
-      .filter((o) => o && Array.isArray(o.games) && o.games.length > 0);
-
-    saveArchive(remote);
-
-    const maxNum = remote.reduce((m, o) => {
-      const n = Number(o.number);
-      return Number.isFinite(n) ? Math.max(m, n) : m;
-    }, 0);
-    localStorage.setItem(ARCHIVE_LAST_NUMBER_KEY, String(maxNum || 0));
-
-    renderArchiveList();
-    renderStats();
-    renderOverallTotals();
-  } catch (e) {
-    console.warn("[Supabase] Archive sync failed", e);
-  } finally {
-    _archiveSyncInFlight = false;
-  }
-}
-
-async function saveArchiveEntryToCloud(entry) {
-  try {
-    const { data: sessData } = await sb.auth.getSession();
-    const session = sessData?.session;
-    if (!session) return { ok: false, reason: "no-session" };
-
-    const { error } = await sb.from("openings").insert({
-      user_id: session.user.id,
-      payload: entry,
-    });
-    if (error) return { ok: false, reason: error.message };
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, reason: e?.message || String(e) };
-  }
-}
 function computeOpeningTotals(opening) {
   const games = opening && Array.isArray(opening.games) ? opening.games : [];
 
@@ -1708,29 +1424,19 @@ function closeFinishModal() {
 }
 
 if (finishModalSave) {
-  finishModalSave.addEventListener("click", async () => {
+  finishModalSave.addEventListener("click", () => {
     const archive = loadArchive();
-
-    const maxNum = Math.max(...archive.map((o) => Number(o?.number) || 0), 0);
-    const number = maxNum + 1;
-    localStorage.setItem(ARCHIVE_LAST_NUMBER_KEY, String(number));
+    const number = getNextArchiveNumber();
 
     const snapshotGames = getOrderedGamesForRender().map((g) => ({ ...g }));
 
-    const entry = {
+    archive.unshift({
       number,
       createdAt: new Date().toISOString(),
       startBalance: currentOpeningStartBalance,
       games: snapshotGames,
-    };
+    });
 
-    const cloudRes = await saveArchiveEntryToCloud(entry);
-    if (!cloudRes.ok && cloudRes.reason !== "no-session") {
-      console.warn("[Supabase] Save failed:", cloudRes.reason);
-      alert("Cloud save failed (saved locally only): " + cloudRes.reason);
-    }
-
-    archive.unshift(entry);
     saveArchive(archive);
 
     currentOpeningGames = [];
@@ -1760,11 +1466,6 @@ if (finishModalSave) {
     updateShuffleButtonsState();
 
     closeFinishModal();
-
-    if (cloudRes.ok) {
-      requestArchiveSync();
-    }
-
     alert(`Saved to Archive as #${number}`);
   });
 }
@@ -2138,7 +1839,7 @@ function renderArchiveDetail(opening) {
 
   const removeBtns = archiveDetail.querySelectorAll(".archive-remove-game-btn");
   removeBtns.forEach((btn) => {
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", () => {
       const gameId = Number(btn.dataset.gameId);
       if (!Number.isFinite(gameId)) return;
 
@@ -2161,21 +1862,6 @@ function renderArchiveDetail(opening) {
         if (ok2) {
           const next = archive.filter((o) => o.number !== opening.number);
           saveArchive(next);
-
-          try {
-            const { data: sessData } = await sb.auth.getSession();
-            const user = sessData?.session?.user;
-            if (user) {
-              await sb
-                .from("openings")
-                .delete()
-                .eq("user_id", user.id)
-                .eq("payload->>number", String(opening.number));
-            }
-          } catch (e) {
-            console.warn("Cloud delete failed", e);
-          }
-
           renderArchiveDetail(null);
           renderArchiveList();
           renderStats();
@@ -2202,7 +1888,7 @@ function renderArchiveDetail(opening) {
 
   const deleteBtn = document.getElementById("delete-opening-btn");
   if (deleteBtn) {
-    deleteBtn.addEventListener("click", async () => {
+    deleteBtn.addEventListener("click", () => {
       const ok = confirm(
         `Delete Opening #${opening.number}? This cannot be undone!`,
       );
@@ -2211,20 +1897,6 @@ function renderArchiveDetail(opening) {
       const archive = loadArchive();
       const next = archive.filter((o) => o.number !== opening.number);
       saveArchive(next);
-
-      try {
-        const { data: sessData } = await sb.auth.getSession();
-        const user = sessData?.session?.user;
-        if (user) {
-          await sb
-            .from("openings")
-            .delete()
-            .eq("user_id", user.id)
-            .eq("payload->>number", String(opening.number));
-        }
-      } catch (e) {
-        console.warn("Cloud delete failed", e);
-      }
 
       renderArchiveDetail(null);
       renderArchiveList();
@@ -2548,10 +2220,12 @@ updateShuffleButtonsState();
 
 console.log("app.js fully initialized✅");
 
+/* ===== Theme toggle + keyboard shortcuts ===== */
 (function () {
   const themeBtn = document.getElementById("theme-toggle");
   const KEY = "bt_theme";
 
+  // init theme
   try {
     const saved = localStorage.getItem(KEY);
     if (saved === "light") document.body.classList.add("light-mode");
@@ -2572,6 +2246,10 @@ console.log("app.js fully initialized✅");
     });
   }
 
+  // Shortcuts (non-destructive):
+  // - "/" focuses stats search or archive search depending on current view
+  // - Esc closes finish modal if open, otherwise focuses win input during opening
+  // - ArrowUp/ArrowDown cycles active game during opening (when play phase is visible)
   document.addEventListener("keydown", (e) => {
     const tag =
       e.target && e.target.tagName ? e.target.tagName.toLowerCase() : "";
@@ -2599,6 +2277,7 @@ console.log("app.js fully initialized✅");
     }
 
     if (!typing && e.key === "/") {
+      // focus search in active view
       const statsView = document.getElementById("view-stats");
       const archiveView = document.getElementById("view-archive");
       const statsVisible = statsView && !statsView.hasAttribute("hidden");
@@ -2618,6 +2297,7 @@ console.log("app.js fully initialized✅");
 
     if (!isPlayVisible) return;
 
+    // Arrow keys cycle active game (only if not typing in an input)
     if (typing) return;
 
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -2644,41 +2324,3 @@ console.log("app.js fully initialized✅");
     }
   });
 })();
-
-async function loadOpeningsFromCloud() {
-  const { data: sessionData } = await sb.auth.getSession();
-  const user = sessionData?.session?.user;
-  if (!user) return;
-
-  const { data, error } = await sb
-    .from("openings")
-    .select("payload")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("Cloud load error:", error);
-    return;
-  }
-
-  if (!data) return;
-
-  const cloudOpenings = data.map((r) => r.payload);
-
-  const local = JSON.parse(
-    localStorage.getItem("bonus-opening-tracker.archive") || "[]",
-  );
-
-  const merged = [...local];
-
-  for (const item of cloudOpenings) {
-    const exists = merged.some((x) => Number(x.number) === Number(item.number));
-    if (!exists) merged.push(item);
-  }
-
-  localStorage.setItem("bonus-opening-tracker.archive", JSON.stringify(merged));
-
-  if (typeof renderArchiveList === "function") {
-    renderArchiveList();
-  }
-}
