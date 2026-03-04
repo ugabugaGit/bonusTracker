@@ -18,6 +18,8 @@ function showView(viewKey) {
     btn.classList.toggle("menu__btn--active", btn.dataset.view === viewKey);
   });
 
+  moveMenuIndicator();
+
   if (viewKey === "analytics") {
     renderProfitChart();
   }
@@ -29,7 +31,18 @@ menuButtons.forEach((btn) => {
   });
 });
 
+function moveMenuIndicator() {
+  const indicator = document.querySelector(".menu__indicator");
+  const active = document.querySelector(".menu__btn--active");
+
+  if (!indicator || !active) return;
+
+  indicator.style.width = active.offsetWidth + "px";
+  indicator.style.left = active.offsetLeft + "px";
+}
+
 showView("stats");
+moveMenuIndicator();
 
 const addGameForm = document.getElementById("add-game-form");
 const gameNameInput = document.getElementById("game-name-input");
@@ -2391,7 +2404,11 @@ function renderProfitChart() {
 
       plugins: {
         legend: {
-          labels: { color: "#fff" },
+          labels: {
+            color: "#fff",
+            boxWidth: 0,
+            boxHeight: 0,
+          },
         },
       },
 
@@ -2419,10 +2436,72 @@ if (analyticsView) {
   const observer = new MutationObserver(() => {
     if (!analyticsView.hidden) {
       renderProfitChart();
+      renderAnalyticsCards();
     }
   });
 
   observer.observe(analyticsView, { attributes: true });
+}
+
+function renderAnalyticsCards() {
+  const archive = loadArchive();
+
+  if (!archive || archive.length === 0) return;
+
+  let totalProfit = 0;
+  let bestOpening = -Infinity;
+  let total100x = 0;
+  let totalGames = 0;
+  let totalSupers = 0;
+  let totalHidden = 0;
+
+  archive.forEach((opening) => {
+    let totalWin = 0;
+
+    for (const g of opening.games) {
+      if (g.win !== null && g.win !== undefined) {
+        totalWin += Number(g.win);
+      }
+
+      const bet = Number(g.bet);
+      const win = Number(g.win);
+
+      totalGames++;
+      if (g.isSuper) totalSupers++;
+      if (g.isHidden) totalHidden++;
+
+      if (win && bet && win / bet >= 100) {
+        total100x++;
+      }
+    }
+
+    const start = Number(opening.startBalance || 0);
+    const profit = totalWin - start;
+
+    totalProfit += profit;
+
+    if (profit > bestOpening) {
+      bestOpening = profit;
+    }
+  });
+
+  const totalOpenings = archive.length;
+
+  const profitEl = document.getElementById("analytics-total-profit");
+  const bestEl = document.getElementById("analytics-best-opening");
+  const hitsEl = document.getElementById("analytics-100x");
+  const openEl = document.getElementById("analytics-openings");
+  const gamesEl = document.getElementById("analytics-total-games");
+  const superEl = document.getElementById("analytics-super");
+  const hiddenEl = document.getElementById("analytics-hidden");
+
+  if (profitEl) profitEl.textContent = formatMoneyFromARS(totalProfit);
+  if (bestEl) bestEl.textContent = formatMoneyFromARS(bestOpening);
+  if (hitsEl) hitsEl.textContent = total100x;
+  if (openEl) openEl.textContent = totalOpenings;
+  if (gamesEl) gamesEl.textContent = totalGames;
+  if (superEl) superEl.textContent = totalSupers;
+  if (hiddenEl) hiddenEl.textContent = totalHidden;
 }
 
 console.log("app.js fully initialized✅");

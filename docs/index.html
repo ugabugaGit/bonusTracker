@@ -80,6 +80,8 @@
           </span>
           <span class="menu__text">Analytics</span>
         </button>
+
+        <div class="menu__indicator"></div>
       </nav>
 
       <div class="fxbar" title="Money display currency">
@@ -445,7 +447,44 @@
       <section class="view" id="view-analytics" hidden>
         <h1>Analytics</h1>
         <div class="panel">
-          <div class="panel__title">Profit Chart</div>
+          <div class="analytics-cards">
+            <div class="analytics-card">
+              <div class="analytics-card-label">Total Profit</div>
+              <div class="analytics-card-value" id="analytics-total-profit">
+                -
+              </div>
+            </div>
+
+            <div class="analytics-card">
+              <div class="analytics-card-label">Best Opening</div>
+              <div class="analytics-card-value" id="analytics-best-opening">
+                -
+              </div>
+            </div>
+
+            <div class="analytics-card">
+              <div class="analytics-card-label">100x Hits</div>
+              <div class="analytics-card-value" id="analytics-100x">-</div>
+            </div>
+
+            <div class="analytics-card">
+              <div class="analytics-card-label">Total Games</div>
+
+              <div class="analytics-card-value" id="analytics-total-games">
+                -
+              </div>
+
+              <div class="analytics-card-sub">
+                SUPERS: <span id="analytics-super">0</span> | HIDDEN:
+                <span id="analytics-hidden">0</span>
+              </div>
+            </div>
+
+            <div class="analytics-card">
+              <div class="analytics-card-label">Total Openings</div>
+              <div class="analytics-card-value" id="analytics-openings">-</div>
+            </div>
+          </div>
           <div class="chart-card">
             <canvas id="profitChart"></canvas>
           </div>

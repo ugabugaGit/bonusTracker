@@ -1374,3 +1374,49 @@ input[type="password"]:focus {
   width: 100% !important;
   height: 100% !important;
 }
+
+.menu {
+  position: relative;
+}
+
+.menu__indicator {
+  position: absolute;
+  bottom: 0;
+  height: 3px;
+  background: white;
+  border-radius: 3px;
+  transition: all 0.35s ease;
+  width: 0;
+  left: 0;
+}
+
+.analytics-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.analytics-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.analytics-card-label {
+  font-size: 12px;
+  opacity: 0.65;
+  margin-bottom: 6px;
+}
+
+.analytics-card-value {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.analytics-card-sub {
+  font-size: 12px;
+  opacity: 0.65;
+  margin-top: 4px;
+}
