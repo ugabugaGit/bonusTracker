@@ -22,6 +22,7 @@ function showView(viewKey) {
     renderProfitChart();
     renderGameProfitChart();
     renderBankrollChart();
+    renderHitStats();
   }
 }
 
@@ -2453,6 +2454,7 @@ if (analyticsView) {
       renderWorstROIGames();
       renderGameProfitChart();
       renderBankrollChart();
+      renderHitStats();
     }
   });
 
@@ -3053,6 +3055,34 @@ function renderBankrollChart() {
       },
     },
   });
+}
+
+function renderHitStats() {
+  const archive = loadArchive();
+  if (!archive) return;
+
+  let hits50 = 0;
+  let hits100 = 0;
+  let hits500 = 0;
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      const win = Number(g.win);
+      const bet = Number(g.bet);
+
+      if (!win || !bet) return;
+
+      const x = win / bet;
+
+      if (x >= 50) hits50++;
+      if (x >= 100) hits100++;
+      if (x >= 500) hits500++;
+    });
+  });
+
+  document.getElementById("hit-50x").textContent = hits50;
+  document.getElementById("hit-100x").textContent = hits100;
+  document.getElementById("hit-500x").textContent = hits500;
 }
 
 console.log("app.js fully initialized✅");
