@@ -1470,3 +1470,16 @@ input[type="password"]:focus {
   font-size: 14px;
   opacity: 0.8;
 }
+
+.rtp-grid > div {
+  margin: 0;
+  padding: 0;
+}
+
+.rtp-grid h4 {
+  margin: 0 0 6px 0;
+}
+
+.rtp-grid table {
+  margin: 0;
+}

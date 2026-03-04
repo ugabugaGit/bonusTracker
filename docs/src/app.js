@@ -2437,6 +2437,8 @@ if (analyticsView) {
       renderBiggestWins();
       renderGameRTP();
       renderHotColdGames();
+      renderLuckMeter();
+      renderMostPlayedGames();
     }
   });
 
@@ -2630,93 +2632,170 @@ function renderGameRTP() {
   });
 }
 
-function renderHotColdGames(){
+function renderHotColdGames() {
+  const archive = loadArchive();
 
-const archive = loadArchive();
+  const hotBody = document.getElementById("hot-games");
+  const coldBody = document.getElementById("cold-games");
 
-const hotBody = document.getElementById("hot-games");
-const coldBody = document.getElementById("cold-games");
+  if (!hotBody || !coldBody) return;
 
-if(!hotBody || !coldBody) return;
+  const lastOpenings = archive.slice(-20);
 
-const lastOpenings = archive.slice(-20);
+  const games = {};
 
-const games = {};
+  lastOpenings.forEach((opening) => {
+    opening.games.forEach((g) => {
+      if (g.win === null || g.win === undefined) return;
 
-lastOpenings.forEach(opening => {
+      const bet = Number(g.bet);
+      const win = Number(g.win);
 
+      if (!bet) return;
 
-opening.games.forEach(g => {
+      const name = g.name;
 
-  if(g.win === null || g.win === undefined) return;
+      if (!games[name]) {
+        games[name] = {
+          totalX: 0,
+          count: 0,
+        };
+      }
 
-  const bet = Number(g.bet);
-  const win = Number(g.win);
+      games[name].totalX += win / bet;
+      games[name].count++;
+    });
+  });
 
-  if(!bet) return;
-
-  const name = g.name;
-
-  if(!games[name]){
-    games[name] = {
-      totalX:0,
-      count:0
+  const list = Object.entries(games).map(([name, data]) => {
+    return {
+      name,
+      avg: data.totalX / data.count,
+      count: data.count,
     };
+  });
+
+  list.sort((a, b) => b.avg - a.avg);
+
+  const hot = list.slice(0, 5);
+  const cold = [...list].reverse().slice(0, 5);
+
+  hotBody.innerHTML = "";
+  coldBody.innerHTML = "";
+
+  hot.forEach((g, i) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+  <td>${i + 1}</td>
+  <td>${g.name}</td>
+  <td>${g.avg.toFixed(1)}x</td>
+`;
+
+    hotBody.appendChild(tr);
+  });
+
+  cold.forEach((g, i) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+  <td>${i + 1}</td>
+  <td>${g.name}</td>
+  <td>${g.avg.toFixed(1)}x</td>
+`;
+
+    coldBody.appendChild(tr);
+  });
+}
+
+function renderLuckMeter() {
+  const archive = loadArchive();
+
+  const lastOpenings = archive.slice(-5);
+
+  let totalBet = 0;
+  let totalWin = 0;
+
+  lastOpenings.forEach((opening) => {
+    opening.games.forEach((g) => {
+      if (g.win === null || g.win === undefined) return;
+
+      totalBet += Number(g.bet);
+      totalWin += Number(g.win);
+    });
+  });
+
+  const luckEl = document.getElementById("analytics-luck");
+  const textEl = document.getElementById("analytics-luck-text");
+
+  if (!luckEl || !textEl) return;
+
+  if (totalBet === 0) {
+    luckEl.textContent = "-";
+    textEl.textContent = "";
+    return;
   }
 
-  games[name].totalX += win / bet;
-  games[name].count++;
+  const rtp = (totalWin / totalBet) * 100;
 
-});
+  luckEl.textContent = rtp.toFixed(1) + "%";
 
-});
+  if (rtp >= 120) {
+    textEl.textContent = "🔥 VERY LUCKY (last 5 openings)";
+  } else if (rtp >= 105) {
+    textEl.textContent = "🙂 Lucky (last 5 openings)";
+  } else if (rtp >= 95) {
+    textEl.textContent = "😐 Normal variance (last 5 openings)";
+  } else if (rtp >= 80) {
+    textEl.textContent = "😬 Unlucky (last 5 openings)";
+  } else {
+    textEl.textContent = "💀 VERY UNLUCKY (last 5 openings)";
+  }
+}
 
-const list = Object.entries(games).map(([name,data])=>{
+function renderMostPlayedGames() {
+  const archive = loadArchive();
+  const tbody = document.getElementById("most-played-games");
 
-return {
-  name,
-  avg: data.totalX / data.count,
-  count: data.count
-};
+  if (!tbody) return;
 
-});
+  const games = {};
 
-list.sort((a,b)=>b.avg-a.avg);
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      const name = g.name;
 
-const hot = list.slice(0,5);
-const cold = [...list].reverse().slice(0,5);
+      if (!games[name]) {
+        games[name] = 0;
+      }
 
-hotBody.innerHTML="";
-coldBody.innerHTML="";
+      games[name]++;
+    });
+  });
 
-hot.forEach((g,i)=>{
+  const list = Object.entries(games)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
 
-const tr=document.createElement("tr");
+  tbody.innerHTML = "";
 
-tr.innerHTML=`
-  <td>${i+1}</td>
-  <td>${g.name}</td>
-  <td>${g.avg.toFixed(1)}x</td>
-`;
+  if (list.length === 0) {
+    tbody.innerHTML = "<tr><td>No data yet.</td></tr>";
+    return;
+  }
 
-hotBody.appendChild(tr);
+  list.forEach((g, i) => {
+    const tr = document.createElement("tr");
 
-});
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${g.name}</td>
+      <td>${g.count}</td>
+    `;
 
-cold.forEach((g,i)=>{
-
-const tr=document.createElement("tr");
-
-tr.innerHTML=`
-  <td>${i+1}</td>
-  <td>${g.name}</td>
-  <td>${g.avg.toFixed(1)}x</td>
-`;
-
-coldBody.appendChild(tr);
-
-});
-
+    tbody.appendChild(tr);
+  });
 }
 
 console.log("app.js fully initialized✅");

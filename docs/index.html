@@ -513,7 +513,6 @@
             <div class="panel__title">🎰 Game RTP</div>
 
             <div class="rtp-grid">
-
               <div>
                 <h4>Top RTP</h4>
                 <table class="leaderboard-table">
@@ -527,20 +526,64 @@
                   <tbody id="rtp-worst"></tbody>
                 </table>
               </div>
-
             </div>
           </div>
-          <div>
-            <h4>🔥 Hot</h4>
-            <table class="leaderboard-table">
-              <tbody id="hot-games"></tbody>
-            </table>
+          <div class="panel">
+            <div class="panel__title">🔥 Hot / ❄️ Cold Games</div>
+
+            <div class="rtp-grid">
+              <div>
+                <h4>🔥 Hot</h4>
+                <table class="leaderboard-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Game</th>
+                      <th>X</th>
+                    </tr>
+                  </thead>
+                  <tbody id="hot-games"></tbody>
+                </table>
+              </div>
+
+              <div>
+                <h4>❄️ Cold</h4>
+                <table class="leaderboard-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Game</th>
+                      <th>X</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cold-games"></tbody>
+                </table>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <h4>❄️ Cold</h4>
+          <div class="panel">
+            <div class="panel__title">🍀 Luck</div>
+
+            <div class="analytics-card">
+              <div class="analytics-card-label">Luck</div>
+              <div class="analytics-card-value" id="analytics-luck">-</div>
+              <div class="analytics-card-sub" id="analytics-luck-text"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel__title">🎮 Most Played Games</div>
+
             <table class="leaderboard-table">
-              <tbody id="cold-games"></tbody>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Game</th>
+                  <th>Times</th>
+                </tr>
+              </thead>
+              <tbody id="most-played-games"></tbody>
             </table>
           </div>
         </div>
