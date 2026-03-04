@@ -4,6 +4,7 @@ const views = {
   stats: document.getElementById("view-stats"),
   archive: document.getElementById("view-archive"),
   new: document.getElementById("view-new"),
+  analytics: document.getElementById("view-analytics"),
 };
 
 const menuButtons = document.querySelectorAll(".menu__btn");
@@ -16,6 +17,10 @@ function showView(viewKey) {
   menuButtons.forEach((btn) => {
     btn.classList.toggle("menu__btn--active", btn.dataset.view === viewKey);
   });
+
+  if (viewKey === "analytics") {
+    renderProfitChart();
+  }
 }
 
 menuButtons.forEach((btn) => {
@@ -322,6 +327,7 @@ function initFxUI() {
     renderGameList();
     if (finishModal && !finishModal.classList.contains("hidden"))
       renderFinishModal();
+    setTimeout(renderProfitChart, 0);
   });
 }
 
@@ -2218,14 +2224,10 @@ updateStartButtonState();
 updateFinishButtonState();
 updateShuffleButtonsState();
 
-console.log("app.js fully initialized✅");
-
-/* ===== Theme toggle + keyboard shortcuts ===== */
 (function () {
   const themeBtn = document.getElementById("theme-toggle");
   const KEY = "bt_theme";
 
-  // init theme
   try {
     const saved = localStorage.getItem(KEY);
     if (saved === "light") document.body.classList.add("light-mode");
@@ -2246,10 +2248,6 @@ console.log("app.js fully initialized✅");
     });
   }
 
-  // Shortcuts (non-destructive):
-  // - "/" focuses stats search or archive search depending on current view
-  // - Esc closes finish modal if open, otherwise focuses win input during opening
-  // - ArrowUp/ArrowDown cycles active game during opening (when play phase is visible)
   document.addEventListener("keydown", (e) => {
     const tag =
       e.target && e.target.tagName ? e.target.tagName.toLowerCase() : "";
@@ -2277,7 +2275,6 @@ console.log("app.js fully initialized✅");
     }
 
     if (!typing && e.key === "/") {
-      // focus search in active view
       const statsView = document.getElementById("view-stats");
       const archiveView = document.getElementById("view-archive");
       const statsVisible = statsView && !statsView.hasAttribute("hidden");
@@ -2297,7 +2294,6 @@ console.log("app.js fully initialized✅");
 
     if (!isPlayVisible) return;
 
-    // Arrow keys cycle active game (only if not typing in an input)
     if (typing) return;
 
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -2324,3 +2320,109 @@ console.log("app.js fully initialized✅");
     }
   });
 })();
+
+let profitChart;
+
+function renderProfitChart() {
+  const archive = loadArchive();
+  if (!archive || archive.length === 0) return;
+
+  const labels = [];
+  const profits = [];
+
+  archive.forEach((opening) => {
+    let totalWin = 0;
+
+    for (const g of opening.games) {
+      if (g.win !== null && g.win !== undefined) {
+        totalWin += Number(g.win);
+      }
+    }
+
+    const start = Number(opening.startBalance || 0);
+    const profitARS = totalWin - start;
+    const profitDisplay = fromARS(profitARS, fx.display);
+
+    labels.push("Opening #" + opening.number);
+    profits.push(profitDisplay);
+  });
+
+  const canvas = document.getElementById("profitChart");
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+
+  if (profitChart) {
+    profitChart.destroy();
+  }
+
+  profitChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Profit (" + fx.display + ")",
+          data: profits,
+
+          borderRadius: 8,
+          borderSkipped: false,
+
+          backgroundColor: profits.map((v) =>
+            v >= 0 ? "rgba(80,220,120,0.7)" : "rgba(255,80,80,0.7)",
+          ),
+
+          borderColor: profits.map((v) =>
+            v >= 0 ? "rgba(80,220,120,1)" : "rgba(255,80,80,1)",
+          ),
+
+          borderWidth: 2,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+
+      animation: {
+        duration: 900,
+        easing: "easeOutQuart",
+      },
+
+      plugins: {
+        legend: {
+          labels: { color: "#fff" },
+        },
+      },
+
+      scales: {
+        x: {
+          ticks: { color: "#fff" },
+          grid: {
+            color: "rgba(255,255,255,0.05)",
+          },
+        },
+        y: {
+          ticks: { color: "#fff" },
+          grid: {
+            color: "rgba(255,255,255,0.05)",
+          },
+        },
+      },
+    },
+  });
+}
+
+const analyticsView = document.getElementById("view-analytics");
+
+if (analyticsView) {
+  const observer = new MutationObserver(() => {
+    if (!analyticsView.hidden) {
+      renderProfitChart();
+    }
+  });
+
+  observer.observe(analyticsView, { attributes: true });
+}
+
+console.log("app.js fully initialized✅");

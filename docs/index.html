@@ -25,7 +25,11 @@
               stroke="currentColor"
               stroke-width="1.5"
             >
-              <path d="M4 19V5M10 19V9M16 19V13M22 19V3" />
+              <path d="M8 21h8" />
+              <path d="M12 17v4" />
+              <path d="M7 4h10v4a5 5 0 0 1-10 0V4z" />
+              <path d="M5 6h2" />
+              <path d="M17 6h2" />
             </svg>
           </span>
           <span class="menu__text">All Time Stats</span>
@@ -59,9 +63,26 @@
           </span>
           <span class="menu__text">New Opening</span>
         </button>
+
+        <button class="menu__btn" data-view="analytics">
+          <span class="menu__icon" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <path d="M4 19V10" />
+              <path d="M10 19V6" />
+              <path d="M16 19V13" />
+              <path d="M22 19V3" />
+            </svg>
+          </span>
+          <span class="menu__text">Analytics</span>
+        </button>
       </nav>
 
-<div class="fxbar title="Money display currency">
+      <div class="fxbar" title="Money display currency">
         <label class="fxbar__label">
           <select id="fx-display">
             <option value="ARS">ARS</option>
@@ -420,6 +441,16 @@
           <li class="game-item">No games added yet.</li>
         </ul>
       </section>
+
+      <section class="view" id="view-analytics" hidden>
+        <h1>Analytics</h1>
+        <div class="panel">
+          <div class="panel__title">Profit Chart</div>
+          <div class="chart-card">
+            <canvas id="profitChart"></canvas>
+          </div>
+        </div>
+      </section>
     </main>
 
     <div id="finish-modal" class="modal" hidden>
@@ -481,7 +512,8 @@
           <button id="finish-modal-save" type="button">Save to Archive</button>
         </div>
       </div>
-    </div>  
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="./src/app.js"></script>
   </body>
 </html>
