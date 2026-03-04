@@ -18,7 +18,6 @@ function showView(viewKey) {
     btn.classList.toggle("menu__btn--active", btn.dataset.view === viewKey);
   });
 
-  moveMenuIndicator();
 
   if (viewKey === "analytics") {
     renderProfitChart();
@@ -42,7 +41,6 @@ function moveMenuIndicator() {
 }
 
 showView("stats");
-moveMenuIndicator();
 
 const addGameForm = document.getElementById("add-game-form");
 const gameNameInput = document.getElementById("game-name-input");
