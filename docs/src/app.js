@@ -2436,6 +2436,7 @@ if (analyticsView) {
       renderAnalyticsCards();
       renderBiggestWins();
       renderGameRTP();
+      renderHotColdGames();
     }
   });
 
@@ -2627,6 +2628,95 @@ function renderGameRTP() {
 
     worstBody.appendChild(tr);
   });
+}
+
+function renderHotColdGames(){
+
+const archive = loadArchive();
+
+const hotBody = document.getElementById("hot-games");
+const coldBody = document.getElementById("cold-games");
+
+if(!hotBody || !coldBody) return;
+
+const lastOpenings = archive.slice(-20);
+
+const games = {};
+
+lastOpenings.forEach(opening => {
+
+
+opening.games.forEach(g => {
+
+  if(g.win === null || g.win === undefined) return;
+
+  const bet = Number(g.bet);
+  const win = Number(g.win);
+
+  if(!bet) return;
+
+  const name = g.name;
+
+  if(!games[name]){
+    games[name] = {
+      totalX:0,
+      count:0
+    };
+  }
+
+  games[name].totalX += win / bet;
+  games[name].count++;
+
+});
+
+});
+
+const list = Object.entries(games).map(([name,data])=>{
+
+return {
+  name,
+  avg: data.totalX / data.count,
+  count: data.count
+};
+
+});
+
+list.sort((a,b)=>b.avg-a.avg);
+
+const hot = list.slice(0,5);
+const cold = [...list].reverse().slice(0,5);
+
+hotBody.innerHTML="";
+coldBody.innerHTML="";
+
+hot.forEach((g,i)=>{
+
+const tr=document.createElement("tr");
+
+tr.innerHTML=`
+  <td>${i+1}</td>
+  <td>${g.name}</td>
+  <td>${g.avg.toFixed(1)}x</td>
+`;
+
+hotBody.appendChild(tr);
+
+});
+
+cold.forEach((g,i)=>{
+
+const tr=document.createElement("tr");
+
+tr.innerHTML=`
+  <td>${i+1}</td>
+  <td>${g.name}</td>
+  <td>${g.avg.toFixed(1)}x</td>
+`;
+
+coldBody.appendChild(tr);
+
+});
+
 }
 
 console.log("app.js fully initialized✅");
