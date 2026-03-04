@@ -208,6 +208,16 @@ document.addEventListener("DOMContentLoaded", () => {
   sb.auth.onAuthStateChange((_event, session) => setAuthUI(session));
 });
 
+sb.auth.getSession().then(({ data }) => {
+  setAuthUI(data.session);
+  if (data.session) loadOpeningsFromCloud();
+});
+
+sb.auth.onAuthStateChange((_event, session) => {
+  setAuthUI(session);
+  if (session) loadOpeningsFromCloud();
+});
+
 const views = {
   stats: document.getElementById("view-stats"),
   archive: document.getElementById("view-archive"),
@@ -2608,3 +2618,41 @@ console.log("app.js fully initialized✅");
     }
   });
 })();
+
+async function loadOpeningsFromCloud() {
+  const { data: sessionData } = await sb.auth.getSession();
+  const user = sessionData?.session?.user;
+  if (!user) return;
+
+  const { data, error } = await sb
+    .from("openings")
+    .select("payload")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Cloud load error:", error);
+    return;
+  }
+
+  if (!data) return;
+
+  const cloudOpenings = data.map((r) => r.payload);
+
+  const local = JSON.parse(localStorage.getItem("archive") || "[]");
+
+  const merged = [...local];
+
+  for (const item of cloudOpenings) {
+    const exists = merged.some(
+      (x) => JSON.stringify(x) === JSON.stringify(item),
+    );
+    if (!exists) merged.push(item);
+  }
+
+  localStorage.setItem("archive", JSON.stringify(merged));
+
+  if (typeof renderArchiveList === "function") {
+    renderArchiveList();
+  }
+}
