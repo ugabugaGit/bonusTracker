@@ -208,6 +208,16 @@ document.addEventListener("DOMContentLoaded", () => {
   sb.auth.onAuthStateChange((_event, session) => setAuthUI(session));
 });
 
+sb.auth.getSession().then(({ data }) => {
+  setAuthUI(data.session);
+  if (data.session) loadOpeningsFromCloud();
+});
+
+sb.auth.onAuthStateChange((_event, session) => {
+  setAuthUI(session);
+  if (session) loadOpeningsFromCloud();
+});
+
 const views = {
   stats: document.getElementById("view-stats"),
   archive: document.getElementById("view-archive"),
@@ -1090,6 +1100,8 @@ function renderGameList() {
     const li = document.createElement("li");
     li.className = "game-item";
 
+    const isActive = openingStarted && Number(activeGameId) === Number(game.id);
+    if (isActive) li.classList.add("game-item--active");
     li.textContent = "No games added yet.";
     gameList.appendChild(li);
     updateFinishButtonState();
@@ -1699,10 +1711,7 @@ if (finishModalSave) {
   finishModalSave.addEventListener("click", async () => {
     const archive = loadArchive();
 
-    const maxNum = archive.reduce((m, o) => {
-      const n = Number(o && o.number);
-      return Number.isFinite(n) ? Math.max(m, n) : m;
-    }, 0);
+    const maxNum = Math.max(...archive.map((o) => Number(o?.number) || 0), 0);
     const number = maxNum + 1;
     localStorage.setItem(ARCHIVE_LAST_NUMBER_KEY, String(number));
 
