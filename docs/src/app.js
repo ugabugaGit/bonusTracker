@@ -99,6 +99,10 @@ const fxDisplaySelect = document.getElementById("fx-display");
 const openingCurrencySelect = document.getElementById(
   "opening-currency-select",
 );
+document.getElementById("fx-display").addEventListener("change", () => {
+  renderProfitChart();
+  renderGameProfitChart();
+});
 
 const startingBalanceInput = document.getElementById("starting-balance-input");
 const breakEvenXEl = document.getElementById("break-even-x");
@@ -2440,6 +2444,7 @@ if (analyticsView) {
       renderLuckMeter();
       renderMostPlayedGames();
       renderWorstROIGames();
+      renderGameProfitChart();
     }
   });
 
@@ -2859,6 +2864,84 @@ function calcRTP(win, bet) {
 
 function calcROI(win, bet) {
   return (win - bet) / bet;
+}
+
+function renderGameProfitChart() {
+  const archive = loadArchive();
+  const games = {};
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      if (g.win === null || g.win === undefined) return;
+
+      const name = g.name;
+
+      const bet = Number(g.bet) * 100;
+      const win = Number(g.win);
+
+      if (!games[name]) {
+        games[name] = 0;
+      }
+
+      games[name] += win - bet;
+    });
+  });
+
+  const list = Object.entries(games)
+    .map(([name, profit]) => ({ name, profit }))
+    .sort((a, b) => b.profit - a.profit)
+    .slice(0, 10);
+
+  const labels = list.map((g) => g.name);
+  const profits = list.map((g) => g.profit);
+
+  const ctx = document.getElementById("gameProfitChart");
+
+  if (!ctx) return;
+
+  new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Profit (" + fx.display + ")",
+          data: profits,
+
+          borderRadius: 8,
+          borderSkipped: false,
+
+          backgroundColor: profits.map((v) =>
+            v >= 0 ? "rgba(80,220,120,0.7)" : "rgba(255,80,80,0.7)",
+          ),
+
+          borderColor: profits.map((v) =>
+            v >= 0 ? "rgba(80,220,120,1)" : "rgba(255,80,80,1)",
+          ),
+
+          borderWidth: 2,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: "#fff",
+          },
+        },
+        y: {
+          ticks: {
+            color: "#fff",
+          },
+        },
+      },
+    },
+  });
 }
 
 console.log("app.js fully initialized✅");
