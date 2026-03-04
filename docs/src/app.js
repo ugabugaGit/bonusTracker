@@ -20,6 +20,8 @@ function showView(viewKey) {
 
   if (viewKey === "analytics") {
     renderProfitChart();
+    renderGameProfitChart();
+    renderBankrollChart();
   }
 }
 
@@ -102,6 +104,7 @@ const openingCurrencySelect = document.getElementById(
 document.getElementById("fx-display").addEventListener("change", () => {
   renderProfitChart();
   renderGameProfitChart();
+  renderBankrollChart();
 });
 
 const startingBalanceInput = document.getElementById("starting-balance-input");
@@ -341,7 +344,11 @@ function initFxUI() {
     renderGameList();
     if (finishModal && !finishModal.classList.contains("hidden"))
       renderFinishModal();
-    setTimeout(renderProfitChart, 0);
+    setTimeout(() => {
+      renderProfitChart();
+      renderGameProfitChart();
+      renderBankrollChart();
+    }, 0);
   });
 }
 
@@ -2445,6 +2452,7 @@ if (analyticsView) {
       renderMostPlayedGames();
       renderWorstROIGames();
       renderGameProfitChart();
+      renderBankrollChart();
     }
   });
 
@@ -2882,7 +2890,6 @@ function renderGameProfitChart() {
       if (!games[name]) {
         games[name] = 0;
       }
-
       games[name] += win - bet;
     });
   });
@@ -2893,7 +2900,7 @@ function renderGameProfitChart() {
     .slice(0, 10);
 
   const labels = list.map((g) => g.name);
-  const profits = list.map((g) => g.profit);
+  const profits = list.map((g) => fromARS(g.profit, fx.display));
 
   const ctx = document.getElementById("gameProfitChart");
 
@@ -2937,6 +2944,110 @@ function renderGameProfitChart() {
         y: {
           ticks: {
             color: "#fff",
+          },
+        },
+      },
+    },
+  });
+}
+
+let bankrollChart;
+
+function renderBankrollChart() {
+  const archive = loadArchive();
+  if (!archive || archive.length === 0) return;
+
+  const labels = [];
+  const bankrollValues = [];
+
+  let bankroll = 0;
+
+  archive.forEach((opening) => {
+    let totalWin = 0;
+
+    for (const g of opening.games) {
+      if (g.win !== null && g.win !== undefined) {
+        totalWin += Number(g.win);
+      }
+    }
+
+    const start = Number(opening.startBalance || 0);
+    const profit = totalWin - start;
+
+    bankroll += profit;
+
+    labels.push("Opening #" + opening.number);
+    bankrollValues.push(fromARS(bankroll, fx.display));
+  });
+
+  const canvas = document.getElementById("bankrollChart");
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+
+  if (bankrollChart) {
+    bankrollChart.destroy();
+  }
+
+  bankrollChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Bankroll (" + fx.display + ")",
+          data: bankrollValues,
+
+          tension: 0.35,
+          borderWidth: 3,
+          pointRadius: 4,
+
+          segment: {
+            borderColor: (ctx) => {
+              const y0 = ctx.p0.parsed.y;
+              const y1 = ctx.p1.parsed.y;
+              return y1 >= y0 ? "rgba(80,220,120,1)" : "rgba(255,80,80,1)";
+            },
+          },
+
+          borderColor: "rgba(80,220,120,1)",
+          backgroundColor: "rgba(80,220,120,0.12)",
+          fill: true,
+        },
+      ],
+    },
+
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+
+      animation: {
+        duration: 900,
+        easing: "easeOutQuart",
+      },
+
+      plugins: {
+        legend: {
+          labels: {
+            color: "#fff",
+            boxWidth: 0,
+            boxHeight: 0,
+          },
+        },
+      },
+
+      scales: {
+        x: {
+          ticks: { color: "#fff" },
+          grid: {
+            color: "rgba(255,255,255,0.05)",
+          },
+        },
+
+        y: {
+          ticks: { color: "#fff" },
+          grid: {
+            color: "rgba(255,255,255,0.05)",
           },
         },
       },
