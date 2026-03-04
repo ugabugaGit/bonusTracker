@@ -2138,7 +2138,7 @@ function renderArchiveDetail(opening) {
 
   const removeBtns = archiveDetail.querySelectorAll(".archive-remove-game-btn");
   removeBtns.forEach((btn) => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", async () => {
       const gameId = Number(btn.dataset.gameId);
       if (!Number.isFinite(gameId)) return;
 
@@ -2161,6 +2161,21 @@ function renderArchiveDetail(opening) {
         if (ok2) {
           const next = archive.filter((o) => o.number !== opening.number);
           saveArchive(next);
+
+          try {
+            const { data: sessData } = await sb.auth.getSession();
+            const user = sessData?.session?.user;
+            if (user) {
+              await sb
+                .from("openings")
+                .delete()
+                .eq("user_id", user.id)
+                .eq("payload->>number", String(opening.number));
+            }
+          } catch (e) {
+            console.warn("Cloud delete failed", e);
+          }
+
           renderArchiveDetail(null);
           renderArchiveList();
           renderStats();
@@ -2187,7 +2202,7 @@ function renderArchiveDetail(opening) {
 
   const deleteBtn = document.getElementById("delete-opening-btn");
   if (deleteBtn) {
-    deleteBtn.addEventListener("click", () => {
+    deleteBtn.addEventListener("click", async () => {
       const ok = confirm(
         `Delete Opening #${opening.number}? This cannot be undone!`,
       );
@@ -2196,6 +2211,20 @@ function renderArchiveDetail(opening) {
       const archive = loadArchive();
       const next = archive.filter((o) => o.number !== opening.number);
       saveArchive(next);
+
+      try {
+        const { data: sessData } = await sb.auth.getSession();
+        const user = sessData?.session?.user;
+        if (user) {
+          await sb
+            .from("openings")
+            .delete()
+            .eq("user_id", user.id)
+            .eq("payload->>number", String(opening.number));
+        }
+      } catch (e) {
+        console.warn("Cloud delete failed", e);
+      }
 
       renderArchiveDetail(null);
       renderArchiveList();
@@ -2643,9 +2672,7 @@ async function loadOpeningsFromCloud() {
   const merged = [...local];
 
   for (const item of cloudOpenings) {
-    const exists = merged.some(
-      (x) => JSON.stringify(x) === JSON.stringify(item),
-    );
+    const exists = merged.some((x) => Number(x.number) === Number(item.number));
     if (!exists) merged.push(item);
   }
 
