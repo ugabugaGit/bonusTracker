@@ -18,7 +18,6 @@ function showView(viewKey) {
     btn.classList.toggle("menu__btn--active", btn.dataset.view === viewKey);
   });
 
-
   if (viewKey === "analytics") {
     renderProfitChart();
   }
@@ -2435,6 +2434,7 @@ if (analyticsView) {
     if (!analyticsView.hidden) {
       renderProfitChart();
       renderAnalyticsCards();
+      renderBiggestWins();
     }
   });
 
@@ -2500,6 +2500,56 @@ function renderAnalyticsCards() {
   if (gamesEl) gamesEl.textContent = totalGames;
   if (superEl) superEl.textContent = totalSupers;
   if (hiddenEl) hiddenEl.textContent = totalHidden;
+}
+
+function renderBiggestWins() {
+  const archive = loadArchive();
+  const tbody = document.getElementById("leaderboard-body");
+
+  if (!tbody) return;
+
+  const wins = [];
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      if (g.win !== null && g.win !== undefined) {
+        const bet = Number(g.bet);
+        const win = Number(g.win);
+
+        if (bet > 0) {
+          wins.push({
+            name: g.name,
+            win: win,
+            x: win / bet,
+          });
+        }
+      }
+    });
+  });
+
+  wins.sort((a, b) => b.x - a.x);
+
+  const top = wins.slice(0, 10);
+
+  tbody.innerHTML = "";
+
+  if (top.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4">No data yet.</td></tr>`;
+    return;
+  }
+
+  top.forEach((w, i) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${w.name}</td>
+      <td>${formatMoneyFromARS(w.win)}</td>
+      <td>${w.x.toFixed(1)}x</td>
+    `;
+
+    tbody.appendChild(tr);
+  });
 }
 
 console.log("app.js fully initialized✅");

@@ -1420,3 +1420,32 @@ input[type="password"]:focus {
   opacity: 0.65;
   margin-top: 4px;
 }
+
+.leaderboard {
+  margin-top: 20px;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.leaderboard-table th,
+.leaderboard-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.leaderboard-table th {
+  font-size: 13px;
+  opacity: 0.7;
+}
+
+.leaderboard-table td {
+  font-size: 14px;
+}
+
+.leaderboard-table tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
