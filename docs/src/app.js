@@ -2552,4 +2552,5 @@ function renderBiggestWins() {
   });
 }
 
+
 console.log("app.js fully initialized✅");
