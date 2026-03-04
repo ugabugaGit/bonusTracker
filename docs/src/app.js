@@ -2439,6 +2439,7 @@ if (analyticsView) {
       renderHotColdGames();
       renderLuckMeter();
       renderMostPlayedGames();
+      renderWorstROIGames();
     }
   });
 
@@ -2796,6 +2797,68 @@ function renderMostPlayedGames() {
 
     tbody.appendChild(tr);
   });
+}
+
+function renderWorstROIGames() {
+  const archive = loadArchive();
+  const tbody = document.getElementById("worst-roi-games");
+
+  if (!tbody) return;
+
+  const games = {};
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      if (g.win === null || g.win === undefined) return;
+
+      const name = g.name;
+
+      if (!games[name]) {
+        games[name] = {
+          bet: 0,
+          win: 0,
+        };
+      }
+
+      games[name].bet += Number(g.bet) * 100;
+      games[name].win += Number(g.win);
+    });
+  });
+
+  const list = Object.entries(games)
+    .map(([name, data]) => ({
+      name,
+      roi: (data.win - data.bet) / data.bet,
+    }))
+    .sort((a, b) => a.roi - b.roi)
+    .slice(0, 10);
+
+  tbody.innerHTML = "";
+
+  if (list.length === 0) {
+    tbody.innerHTML = "<tr><td colspan='3'>No data yet.</td></tr>";
+    return;
+  }
+
+  list.forEach((g, i) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${g.name}</td>
+      <td>${(g.roi * 100).toFixed(1)}%</td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+function calcRTP(win, bet) {
+  return win / bet;
+}
+
+function calcROI(win, bet) {
+  return (win - bet) / bet;
 }
 
 console.log("app.js fully initialized✅");
