@@ -2541,16 +2541,21 @@ function renderBiggestWins() {
   top.forEach((w, i) => {
     const tr = document.createElement("tr");
 
+    let rank = i + 1;
+
+    if (i === 0) rank = "🥇";
+    else if (i === 1) rank = "🥈";
+    else if (i === 2) rank = "🥉";
+
     tr.innerHTML = `
-      <td>${i + 1}</td>
+      <td class="leaderboard-rank">${rank}</td>
       <td>${w.name}</td>
       <td>${formatMoneyFromARS(w.win)}</td>
-      <td>${w.x.toFixed(1)}x</td>
+      <td class="leaderboard-x">${w.x.toFixed(1)}x</td>
     `;
 
     tbody.appendChild(tr);
   });
 }
-
 
 console.log("app.js fully initialized✅");
