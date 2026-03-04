@@ -208,16 +208,6 @@ document.addEventListener("DOMContentLoaded", () => {
   sb.auth.onAuthStateChange((_event, session) => setAuthUI(session));
 });
 
-sb.auth.getSession().then(({ data }) => {
-  setAuthUI(data.session);
-  if (data.session) loadOpeningsFromCloud();
-});
-
-sb.auth.onAuthStateChange((_event, session) => {
-  setAuthUI(session);
-  if (session) loadOpeningsFromCloud();
-});
-
 const views = {
   stats: document.getElementById("view-stats"),
   archive: document.getElementById("view-archive"),
@@ -1100,8 +1090,6 @@ function renderGameList() {
     const li = document.createElement("li");
     li.className = "game-item";
 
-    const isActive = openingStarted && Number(activeGameId) === Number(game.id);
-    if (isActive) li.classList.add("game-item--active");
     li.textContent = "No games added yet.";
     gameList.appendChild(li);
     updateFinishButtonState();
@@ -2639,7 +2627,9 @@ async function loadOpeningsFromCloud() {
 
   const cloudOpenings = data.map((r) => r.payload);
 
-  const local = JSON.parse(localStorage.getItem("archive") || "[]");
+  const local = JSON.parse(
+    localStorage.getItem("bonus-opening-tracker.archive") || "[]",
+  );
 
   const merged = [...local];
 
@@ -2650,7 +2640,7 @@ async function loadOpeningsFromCloud() {
     if (!exists) merged.push(item);
   }
 
-  localStorage.setItem("archive", JSON.stringify(merged));
+  localStorage.setItem("bonus-opening-tracker.archive", JSON.stringify(merged));
 
   if (typeof renderArchiveList === "function") {
     renderArchiveList();
