@@ -24,6 +24,11 @@ function showView(viewKey) {
     renderBankrollChart();
     renderHitStats();
     renderWinDistributionChart();
+    renderMedianX();
+    renderHighestX();
+    renderBestOpening();
+    renderGameHeatmap();
+    renderBestGameEver();
   }
 }
 
@@ -2457,6 +2462,11 @@ if (analyticsView) {
       renderBankrollChart();
       renderHitStats();
       renderWinDistributionChart();
+      renderMedianX();
+      renderHighestX();
+      renderBestOpening();
+      renderGameHeatmap();
+      renderBestGameEver();
     }
   });
 
@@ -3100,8 +3110,7 @@ function renderWinDistributionChart() {
   let bucket500 = 0;
 
   archive.forEach((opening) => {
-    opening.games.forEach(g => {
-
+    opening.games.forEach((g) => {
       const win = Number(g.win);
       const bet = Number(g.bet);
 
@@ -3114,7 +3123,6 @@ function renderWinDistributionChart() {
       else if (x < 100) bucket50_100++;
       else if (x < 500) bucket100_500++;
       else bucket500++;
-
     });
   });
 
@@ -3174,6 +3182,237 @@ function renderWinDistributionChart() {
       },
     },
   });
+}
+
+function renderMedianX() {
+  const archive = loadArchive();
+  if (!archive) return;
+
+  const xs = [];
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      const win = Number(g.win);
+      const bet = Number(g.bet);
+
+      if (g.win === null || g.win === undefined) return;
+      if (!bet) return;
+
+      xs.push(win / bet);
+    });
+  });
+
+  if (!xs.length) {
+    document.getElementById("analytics-median-x").textContent = "-";
+    return;
+  }
+
+  xs.sort((a, b) => a - b);
+
+  const mid = Math.floor(xs.length / 2);
+
+  let median;
+
+  if (xs.length % 2 === 0) {
+    median = (xs[mid - 1] + xs[mid]) / 2;
+  } else {
+    median = xs[mid];
+  }
+
+  document.getElementById("analytics-median-x").textContent =
+    median.toFixed(2) + "x";
+}
+
+function renderHighestX() {
+  const archive = loadArchive();
+  if (!archive) return;
+
+  let maxX = 0;
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      const win = Number(g.win);
+      const bet = Number(g.bet);
+
+      if (g.win === null || g.win === undefined) return;
+      if (!bet) return;
+
+      const x = win / bet;
+
+      if (x > maxX) {
+        maxX = x;
+      }
+    });
+  });
+
+  const el = document.getElementById("analytics-highest-x");
+
+  if (!el) return;
+
+  el.textContent = maxX ? maxX.toFixed(2) + "x" : "-";
+}
+
+function renderBestOpening() {
+  const archive = loadArchive();
+  if (!archive || !archive.length) return;
+
+  let bestProfit = -Infinity;
+  let bestOpening = null;
+
+  archive.forEach((opening, index) => {
+    let totalWin = 0;
+    let totalBet = 0;
+
+    opening.games.forEach((g) => {
+      const win = Number(g.win);
+      const bet = Number(g.bet);
+
+      if (g.win === null || g.win === undefined) return;
+      if (!bet) return;
+
+      totalWin += win;
+      totalBet += bet;
+    });
+
+    const profit = totalWin - totalBet;
+
+    if (profit > bestProfit) {
+      bestProfit = profit;
+      bestOpening = index + 1;
+    }
+  });
+
+  const profitDisplay = fromARS(bestProfit, fx.display);
+
+  document.getElementById("analytics-best-opening-profit").textContent =
+    profitDisplay.toFixed(2) + " " + fx.display;
+
+  document.getElementById("analytics-best-opening-id").textContent =
+    "Opening #" + bestOpening;
+}
+
+function getX(g) {
+  const win = Number(g.win);
+  const bet = Number(g.bet);
+  if (!bet) return null;
+  return win / bet;
+}
+
+function renderGameHeatmap() {
+  const archive = loadArchive();
+  if (!archive) return;
+
+  const gameStats = {};
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      const win = Number(g.win);
+      const bet = Number(g.bet);
+
+      if (g.win === null || g.win === undefined) return;
+      if (!bet) return;
+
+      const x = win / bet;
+      const name = g.name;
+
+      if (!gameStats[name]) {
+        gameStats[name] = { totalX: 0, count: 0 };
+      }
+
+      gameStats[name].totalX += x;
+      gameStats[name].count++;
+    });
+  });
+
+  const container = document.getElementById("heatmap-container");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  const sortedGames = Object.entries(gameStats).sort(
+    (a, b) => b[1].totalX / b[1].count - a[1].totalX / a[1].count,
+  );
+
+  sortedGames.forEach(([game, stats]) => {
+    const avgX = stats.totalX / stats.count;
+
+    const div = document.createElement("div");
+    div.classList.add("heatmap-item");
+
+    const maxX = 200;
+
+    let intensity = Math.min(avgX / maxX, 1);
+
+    let r, g;
+
+    if (avgX < 30) {
+      r = 220;
+      g = Math.floor(120 * intensity);
+    } else {
+      r = Math.floor(220 * (1 - intensity));
+      g = 200;
+    }
+
+    div.style.backgroundColor = `rgba(${r}, ${g}, 80, 0.35)`;
+
+    div.innerHTML =
+      "<div>" +
+      game +
+      "</div>" +
+      "<div style='margin-top:4px'>" +
+      avgX.toFixed(2) +
+      "x" +
+      "</div>" +
+      "<div style='font-size:11px; opacity:0.6'>" +
+      stats.count +
+      " plays" +
+      "</div>";
+
+    container.appendChild(div);
+  });
+}
+
+function renderBestGameEver() {
+  const archive = loadArchive();
+  if (!archive) return;
+
+  const gameProfits = {};
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      const win = Number(g.win);
+      const bet = Number(g.bet);
+
+      if (g.win === null || g.win === undefined) return;
+      if (!bet) return;
+
+      const profit = win - bet; // sama loogika mis sul mujal trackeris
+      const name = g.name;
+
+      if (!gameProfits[name]) {
+        gameProfits[name] = 0;
+      }
+
+      gameProfits[name] += profit;
+    });
+  });
+
+  let bestGame = null;
+  let bestProfit = -Infinity;
+
+  Object.entries(gameProfits).forEach(([game, profit]) => {
+    if (profit > bestProfit) {
+      bestProfit = profit;
+      bestGame = game;
+    }
+  });
+
+  const profitDisplay = fromARS(bestProfit, fx.display);
+
+  document.getElementById("analytics-best-game-profit").textContent =
+    profitDisplay.toFixed(2) + " " + fx.display;
+
+  document.getElementById("analytics-best-game-name").textContent = bestGame;
 }
 
 console.log("app.js fully initialized✅");
