@@ -30,8 +30,13 @@ function showView(viewKey) {
     renderGameHeatmap();
     renderBestGameEver();
     renderWorstGameEver();
+    renderGamePerformance();
   }
 }
+
+let gamePerformanceRows = [];
+let gameSortColumn = "profit";
+let gameSortAsc = false;
 
 menuButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
@@ -2469,6 +2474,7 @@ if (analyticsView) {
       renderGameHeatmap();
       renderBestGameEver();
       renderWorstGameEver();
+      renderGamePerformance();
     }
   });
 
@@ -3458,6 +3464,77 @@ function renderWorstGameEver() {
     profitDisplay.toFixed(2) + " " + fx.display;
 
   document.getElementById("analytics-worst-game-name").textContent = worstGame;
+}
+
+function renderGamePerformance() {
+  const archive = loadArchive();
+  if (!archive) return;
+
+  const stats = {};
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      const win = Number(g.win);
+      const bet = Number(g.bet);
+
+      if (g.win === null || g.win === undefined) return;
+      if (!bet) return;
+
+      const name = g.name;
+      const x = win / bet;
+      const profit = win - bet;
+
+      if (!stats[name]) {
+        stats[name] = {
+          profit: 0,
+          totalX: 0,
+          plays: 0,
+        };
+      }
+
+      stats[name].profit += profit;
+      stats[name].totalX += x;
+      stats[name].plays++;
+    });
+  });
+
+  const rows = Object.entries(stats)
+    .map(([game, s]) => ({
+      game,
+      profit: s.profit,
+      plays: s.plays,
+      avgX: s.totalX / s.plays,
+    }))
+    .sort((a, b) => b.profit - a.profit);
+
+  const tbody = document.getElementById("game-performance-body");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  rows.forEach((r) => {
+    const profitDisplay = fromARS(r.profit, fx.display);
+
+    const tr = document.createElement("tr");
+
+    tr.innerHTML =
+      "<td>" +
+      r.game +
+      "</td>" +
+      "<td>" +
+      profitDisplay.toFixed(2) +
+      " " +
+      fx.display +
+      "</td>" +
+      "<td>" +
+      r.plays +
+      "</td>" +
+      "<td>" +
+      r.avgX.toFixed(2) +
+      "x</td>";
+
+    tbody.appendChild(tr);
+  });
 }
 
 console.log("app.js fully initialized✅");
