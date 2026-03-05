@@ -1517,3 +1517,8 @@ input[type="password"]:focus {
 .heatmap-loss {
   background: rgba(239, 68, 68, 0.25);
 }
+
+select option {
+  background: var(--bg2);
+  color: var(--text);
+}
