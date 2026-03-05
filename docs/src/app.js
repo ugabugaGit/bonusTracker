@@ -29,6 +29,7 @@ function showView(viewKey) {
     renderBestOpening();
     renderGameHeatmap();
     renderBestGameEver();
+    renderWorstGameEver();
   }
 }
 
@@ -2467,6 +2468,7 @@ if (analyticsView) {
       renderBestOpening();
       renderGameHeatmap();
       renderBestGameEver();
+      renderWorstGameEver();
     }
   });
 
@@ -3413,6 +3415,49 @@ function renderBestGameEver() {
     profitDisplay.toFixed(2) + " " + fx.display;
 
   document.getElementById("analytics-best-game-name").textContent = bestGame;
+}
+
+function renderWorstGameEver() {
+  const archive = loadArchive();
+  if (!archive) return;
+
+  const gameProfits = {};
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      const win = Number(g.win);
+      const bet = Number(g.bet);
+
+      if (g.win === null || g.win === undefined) return;
+      if (!bet) return;
+
+      const profit = win - bet;
+      const name = g.name;
+
+      if (!gameProfits[name]) {
+        gameProfits[name] = 0;
+      }
+
+      gameProfits[name] += profit;
+    });
+  });
+
+  let worstGame = null;
+  let worstProfit = Infinity;
+
+  Object.entries(gameProfits).forEach(([game, profit]) => {
+    if (profit < worstProfit) {
+      worstProfit = profit;
+      worstGame = game;
+    }
+  });
+
+  const profitDisplay = fromARS(worstProfit, fx.display);
+
+  document.getElementById("analytics-worst-game-profit").textContent =
+    profitDisplay.toFixed(2) + " " + fx.display;
+
+  document.getElementById("analytics-worst-game-name").textContent = worstGame;
 }
 
 console.log("app.js fully initialized✅");
