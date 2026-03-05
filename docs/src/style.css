@@ -1519,6 +1519,11 @@ input[type="password"]:focus {
 }
 
 select option {
-  background: var(--bg2);
-  color: var(--text);
+  background: #0b0b0c;
+  color: white;
+}
+
+body.light-mode select option {
+  background: #ffffff;
+  color: #000000;
 }
