@@ -30,6 +30,12 @@ const SLOT_DATABASE = [
     demo: "https://clashofslots.com/slots/hacksaw-gaming/le-pharaoh/",
   },
   {
+    name: "Le Rapper",
+    provider: "Hacksaw Gaming",
+    maxWin: "10000x",
+    demo: "https://www.bigwinboard.com/le-rapper-hacksaw-gaming-slot-review/",
+  },
+  {
     name: "Le King",
     provider: "Hacksaw Gaming",
     maxWin: "20000x",
@@ -339,7 +345,7 @@ const SLOT_DATABASE = [
     name: "Fighter Pit",
     provider: "Hacksaw Gaming",
     maxWin: "10000x",
-    demo: "https://clashofslots.com/slots/hacksaw-gaming/fighter-pit/",
+    demo: "www.hacksawgaming.com/games/fighter-pit",
   },
   {
     name: "Danny Dollar",
@@ -369,7 +375,7 @@ const SLOT_DATABASE = [
     name: "Octo Attack",
     provider: "Hacksaw Gaming",
     maxWin: "10000x",
-    demo: "https://clashofslots.com/slots/hacksaw-gaming/cto-attack/",
+    demo: "https://clashofslots.com/slots/hacksaw-gaming/octo-attack/",
   },
   {
     name: "Rainbow Princess",
@@ -423,7 +429,7 @@ const SLOT_DATABASE = [
     name: "Book of Time",
     provider: "Hacksaw Gaming",
     maxWin: "10000x",
-    demo: "https://clashofslots.com/slots/hacksaw-gaming/book-of-time/",
+    demo: "https://clashofslots.com/slots/hacksaw-gaming/canny-the-can-and-the-book-of-time/",
   },
   {
     name: "Phoenix DuelReels",
@@ -615,7 +621,7 @@ const SLOT_DATABASE = [
     name: "Twisted Lab",
     provider: "Hacksaw Gaming",
     maxWin: "15000x",
-    demo: "https://clashofslots.com/slots/hacksaw-gaming/twisted-lab/",
+    demo: "https://clashofslots.com/slots/hacksaw-gaming/twisted-lab-rotogrid/",
   },
   {
     name: "Temple of Torment",
@@ -777,7 +783,7 @@ const SLOT_DATABASE = [
     name: "Strength of Hercules",
     provider: "Hacksaw Gaming",
     maxWin: "10000x",
-    demo: "https://clashofslots.com/slots/hacksaw-gaming/strength-of-hercules/",
+    demo: "https://clashofslots.com/slots/hacksaw-gaming/strength-of-hercule/",
   },
   {
     name: "Xpander",
@@ -813,7 +819,7 @@ const SLOT_DATABASE = [
     name: "Haunted Circus",
     provider: "Hacksaw Gaming",
     maxWin: "10000x",
-    demo: "https://clashofslots.com/slots/hacksaw-gaming/haunted-circus/",
+    demo: "www.bigwinboard.com/the-haunted-circus-hacksaw-gaming-slot-review/",
   },
   {
     name: "Rocket Reels",
@@ -843,7 +849,7 @@ const SLOT_DATABASE = [
     name: "Forest Fortune",
     provider: "Hacksaw Gaming",
     maxWin: "10000x",
-    demo: "https://clashofslots.com/slots/hacksaw-gaming/Forest Fortune/",
+    demo: "https://clashofslots.com/slots/hacksaw-gaming/forest-fortune/",
   },
   {
     name: "The Bomb",
@@ -864,10 +870,10 @@ const SLOT_DATABASE = [
     demo: "https://clashofslots.com/slots/hacksaw-gaming/cash-quest/",
   },
   {
-    name: "Fruitz",
+    name: "Frutz",
     provider: "Hacksaw Gaming",
     maxWin: "10000x",
-    demo: "https://clashofslots.com/slots/hacksaw-gaming/fruitz/",
+    demo: "https://clashofslots.com/slots/hacksaw-gaming/frutz/",
   },
   {
     name: "Tasty Treats",
