@@ -1527,3 +1527,7 @@ body.light-mode select option {
   background: #ffffff;
   color: #000000;
 }
+
+select option:hover {
+  background: rgba(255, 255, 255, 0.1);
+}

@@ -81,6 +81,23 @@
           <span class="menu__text">Analytics</span>
         </button>
 
+        <button class="menu__btn" data-view="slots">
+          <span class="menu__icon" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <rect x="4" y="5" width="16" height="14" rx="2" />
+              <circle cx="9" cy="12" r="1.5" />
+              <circle cx="12" cy="12" r="1.5" />
+              <circle cx="15" cy="12" r="1.5" />
+            </svg>
+          </span>
+          <span class="menu__text">Database</span>
+        </button>
+
         <div class="menu__indicator"></div>
       </nav>
 
@@ -707,6 +724,38 @@
           </div>
         </div>
       </section>
+
+      <section class="view" id="view-slots" hidden>
+
+        <h1>Slot Database</h1>
+        <input
+          id="slot-search"
+          type="text"
+          placeholder="Search slot..."
+          style="margin-bottom:15px; padding:8px; width:260px;"
+        >
+        <select id="provider-filter" style="margin-left:10px; padding:8px;">
+          <option value="all">All Providers</option>
+        </select>
+
+        <table class="leaderboard-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Provider</th>
+              <th>Max Win</th>
+              <th>Demo</th>
+            </tr>
+          </thead>
+
+          <tbody id="slots-body">
+            <tr>
+              <td colspan="4">No slots yet.</td>
+            </tr>
+          </tbody>
+        </table>
+
+      </section>
     </main>
 
     <div id="finish-modal" class="modal" hidden>
@@ -770,6 +819,7 @@
       </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="./src/slots.js"></script>
     <script src="./src/app.js"></script>
   </body>
 </html>

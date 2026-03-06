@@ -5,6 +5,7 @@ const views = {
   archive: document.getElementById("view-archive"),
   new: document.getElementById("view-new"),
   analytics: document.getElementById("view-analytics"),
+  slots: document.getElementById("view-slots"),
 };
 
 const menuButtons = document.querySelectorAll(".menu__btn");
@@ -32,6 +33,9 @@ function showView(viewKey) {
     renderWorstGameEver();
     renderGamePerformance();
   }
+  if (viewKey === "slots") {
+    renderSlots();
+  }
 }
 
 let gamePerformanceRows = [];
@@ -55,6 +59,8 @@ function moveMenuIndicator() {
 }
 
 showView("stats");
+
+populateProviderFilter();
 
 const addGameForm = document.getElementById("add-game-form");
 const gameNameInput = document.getElementById("game-name-input");
@@ -3535,6 +3541,62 @@ function renderGamePerformance() {
 
     tbody.appendChild(tr);
   });
+}
+
+function renderSlots() {
+  const tbody = document.getElementById("slots-body");
+
+  const search = document.getElementById("slot-search").value.toLowerCase();
+
+  const provider = document.getElementById("provider-filter").value;
+
+  tbody.innerHTML = "";
+
+  SLOT_DATABASE.filter(
+    (slot) =>
+      (slot.name.toLowerCase().includes(search) ||
+        slot.provider.toLowerCase().includes(search)) &&
+      (provider === "all" || slot.provider === provider),
+  ).forEach((slot) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+        <td>${slot.name}</td>
+        <td>${slot.provider}</td>
+        <td>${slot.maxWin}</td>
+        <td><a href="${slot.demo}" target="_blank">Demo</a></td>
+      `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+function populateProviderFilter() {
+  const filter = document.getElementById("provider-filter");
+
+  filter.innerHTML = '<option value="all">All Providers</option>';
+
+  const providers = [...new Set(SLOT_DATABASE.map((s) => s.provider))];
+
+  providers.forEach((provider) => {
+    const option = document.createElement("option");
+
+    option.value = provider;
+    option.textContent = provider;
+
+    filter.appendChild(option);
+  });
+}
+
+const slotSearchInput = document.getElementById("slot-search");
+const providerFilter = document.getElementById("provider-filter");
+
+if (slotSearchInput) {
+  slotSearchInput.addEventListener("input", renderSlots);
+}
+
+if (providerFilter) {
+  providerFilter.addEventListener("change", renderSlots);
 }
 
 console.log("app.js fully initialized✅");
