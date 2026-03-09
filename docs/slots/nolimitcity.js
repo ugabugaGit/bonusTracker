@@ -27,7 +27,7 @@ SLOT_DATABASE.push(
     name: "Das xBoot 2wei!",
     provider: "Nolimit City",
     maxWin: "59999x",
-    demo: "https://clashofslots.com/slots/nolimit-city/das-xboot-2wei/",
+    demo: "https://clashofslots.com/slots/nolimit-city/das-xboot-zwei/",
   },
   {
     name: "Crazy Ex-Girlfriend",
@@ -54,10 +54,10 @@ SLOT_DATABASE.push(
     demo: "https://clashofslots.com/slots/nolimit-city/bangkok-hilton/",
   },
   {
-    name: "Break Out",
+    name: "Breakout",
     provider: "Nolimit City",
     maxWin: "20000x",
-    demo: "https://clashofslots.com/slots/nolimit-city/break-out/",
+    demo: "https://clashofslots.com/slots/nolimit-city/breakout/",
   },
   {
     name: "Dead Men Walking",
@@ -231,7 +231,7 @@ SLOT_DATABASE.push(
     name: "Deadwood R.I.P",
     provider: "Nolimit City",
     maxWin: "100000x",
-    demo: "https://clashofslots.com/slots/nolimit-city/deadwood-rip/",
+    demo: "https://clashofslots.com/slots/nolimit-city/deadwood-r-i-p/",
   },
   {
     name: "Loner",
@@ -327,7 +327,7 @@ SLOT_DATABASE.push(
     name: "Infectious 5 xWays",
     provider: "Nolimit City",
     maxWin: "55555x",
-    demo: "https://clashofslots.com/slots/nolimit-city/infectious-5-xways/",
+    demo: "https://clashofslots.com/slots/nolimit-city/infectious-5/",
   },
   {
     name: "Kiss My Chainsaw",
@@ -357,13 +357,13 @@ SLOT_DATABASE.push(
     name: "Warrior Graveyard xNudge",
     provider: "Nolimit City",
     maxWin: "9797x",
-    demo: "https://clashofslots.com/slots/nolimit-city/warrior-graveyard-xnudge/",
+    demo: "https://clashofslots.com/slots/nolimit-city/warrior-graveyard/",
   },
   {
     name: "Evil Goblins xBomb",
     provider: "Nolimit City",
     maxWin: "31969x",
-    demo: "https://clashofslots.com/slots/nolimit-city/evil-goblin-xbomb/",
+    demo: "https://clashofslots.com/slots/nolimit-city/evil-goblins/",
   },
   {
     name: "Misery Mining",
@@ -387,7 +387,7 @@ SLOT_DATABASE.push(
     name: "San Quentin",
     provider: "Nolimit City",
     maxWin: "150000x",
-    demo: "https://clashofslots.com/slots/nolimit-city/san-quentin/",
+    demo: "https://clashofslots.com/slots/nolimit-city/san-quentin-xways/",
   },
   {
     name: "Ugliest Catch",
@@ -405,7 +405,7 @@ SLOT_DATABASE.push(
     name: "Coins Of Fortune",
     provider: "Nolimit City",
     maxWin: "6015x",
-    demo: "https://clashofslots.com/slots/nolimit-city/coins-of-fortune/",
+    demo: "https://nolimitcity.com/demo/CoinsOfFortune?showNavbar=true",
   },
   {
     name: "Dead Canary",
@@ -417,7 +417,7 @@ SLOT_DATABASE.push(
     name: "Deadwood",
     provider: "Nolimit City",
     maxWin: "13950x",
-    demo: "https://clashofslots.com/slots/nolimit-city/deadwood/",
+    demo: "https://clashofslots.com/slots/nolimit-city/deadwood-xnudge/",
   },
   {
     name: "Dragon Tribe",
@@ -435,7 +435,7 @@ SLOT_DATABASE.push(
     name: "Golden Genie & The Walking Wilds",
     provider: "Nolimit City",
     maxWin: "9584x",
-    demo: "https://clashofslots.com/slots/nolimit-city/golden-genie-the-walking-wilds/",
+    demo: "https://clashofslots.com/slots/nolimit-city/golden-genie/",
   },
   {
     name: "Karen Maneater",
@@ -459,7 +459,7 @@ SLOT_DATABASE.push(
     name: "Possessed",
     provider: "Nolimit City",
     maxWin: "50000x",
-    demo: "https://clashofslots.com/slots/nolimit-city/posessed/",
+    demo: "https://clashofslots.com/slots/nolimit-city/possessed/",
   },
   {
     name: "Serial",
@@ -504,10 +504,10 @@ SLOT_DATABASE.push(
     demo: "https://clashofslots.com/slots/nolimit-city/el-paso-gunfight-xnudge/",
   },
   {
-    name: "Fire In The Hole xBomb",
+    name: "Fire In The Hole",
     provider: "Nolimit City",
     maxWin: "60000x",
-    demo: "https://clashofslots.com/slots/nolimit-city/fire-in-the-hole-xbomb/",
+    demo: "https://clashofslots.com/slots/nolimit-city/fire-in-the-hole/",
   },
   {
     name: "Folsom Prison",
@@ -543,7 +543,7 @@ SLOT_DATABASE.push(
     name: "True Grit Redemption",
     provider: "Nolimit City",
     maxWin: "20220x",
-    demo: "https://clashofslots.com/slots/nolimit-city/true-gri-redemprion/",
+    demo: "https://clashofslots.com/slots/nolimit-city/true-grit-redemprion/",
   },
   {
     name: "Blood & Shadow",
@@ -561,7 +561,7 @@ SLOT_DATABASE.push(
     name: "Bushido Ways xNudge",
     provider: "Nolimit City",
     maxWin: "30000x",
-    demo: "https://clashofslots.com/slots/nolimit-city/bushido-ways-xnudge/",
+    demo: "https://clashofslots.com/slots/nolimit-city/bushido-ways/",
   },
   {
     name: "Gluttony",
