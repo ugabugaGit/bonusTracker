@@ -1,5 +1,11 @@
 SLOT_DATABASE.push(
   {
+    name: "Dark Spiral",
+    provider: "Hacksaw Gaming",
+    maxWin: "10000x",
+    demo: "https://clashofslots.com/slots/hacksaw-gaming/dark-spiral/",
+  },
+  {
     name: "Chaos Crew",
     provider: "Hacksaw Gaming",
     maxWin: "10000x",
