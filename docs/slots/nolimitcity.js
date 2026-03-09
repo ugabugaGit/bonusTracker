@@ -543,7 +543,7 @@ SLOT_DATABASE.push(
     name: "True Grit Redemption",
     provider: "Nolimit City",
     maxWin: "20220x",
-    demo: "https://clashofslots.com/slots/nolimit-city/true-grit-redemprion/",
+    demo: "https://clashofslots.com/slots/nolimit-city/true-grit-redemption/",
   },
   {
     name: "Blood & Shadow",
