@@ -93,7 +93,7 @@ SLOT_DATABASE.push(
     name: "CherryPop Burst",
     provider: "Avatar UX",
     maxWin: "20000x",
-    demo: "https://clashofslots.com/slots/avatarux/cherrypop-burst/",
+    demo: "https://respinix.com/demo/cherrypop-burst/",
   },
   {
     name: "Spinxiety",
@@ -159,7 +159,7 @@ SLOT_DATABASE.push(
     name: "PiggyPop Grand Affair",
     provider: "Avatar UX",
     maxWin: "5000x",
-    demo: "https://clashofslots.com/slots/avatarux/piggypop-grand-affair/",
+    demo: "https://www.demoslotsfun.com/slots/piggypop-grand-affair-demo-slot",
   },
   {
     name: "Canyon Riches",
@@ -183,7 +183,7 @@ SLOT_DATABASE.push(
     name: "Jungle Pop",
     provider: "Avatar UX",
     maxWin: "50000x",
-    demo: "https://clashofslots.com/slots/avatarux/jungle-pop/",
+    demo: "https://clashofslots.com/slots/avatarux/junglepop/",
   },
   {
     name: "Pixel Paws",
@@ -195,7 +195,7 @@ SLOT_DATABASE.push(
     name: "Imperial Coins",
     provider: "Avatar UX",
     maxWin: "10000x",
-    demo: "https://clashofslots.com/slots/avatarux/imperial-coins/",
+    demo: "https://great.com/slots/imperial-coins/",
   },
   {
     name: "Gods Gone Wld",
@@ -207,7 +207,7 @@ SLOT_DATABASE.push(
     name: "Animals Strike",
     provider: "Avatar UX",
     maxWin: "10000x",
-    demo: "https://clashofslots.com/slots/avatarux/animal-strike/",
+    demo: "https://clashofslots.com/slots/avatarux/animals-strike/",
   },
   {
     name: "Tik Talkers",
@@ -225,13 +225,13 @@ SLOT_DATABASE.push(
     name: "TikiPop Spooky Temples",
     provider: "Avatar UX",
     maxWin: "32000x",
-    demo: "https://clashofslots.com/slots/avatarux/tkipop-spooky-temples/",
+    demo: "https://clashofslots.com/slots/avatarux/tikipop-spooky-temples/",
   },
   {
     name: "Juicy Pop",
     provider: "Avatar UX",
     maxWin: "10000x",
-    demo: "https://clashofslots.com/slots/avatarux/juicy-pop/",
+    demo: "https://clashofslots.com/slots/avatarux/juicypop/",
   },
   {
     name: "Sweet Gummy",
@@ -255,7 +255,7 @@ SLOT_DATABASE.push(
     name: "Arcana Pop",
     provider: "Avatar UX",
     maxWin: "20000x",
-    demo: "https://clashofslots.com/slots/avatarux/arcana-pop/",
+    demo: "https://clashofslots.com/slots/avatarux/arcanapop/",
   },
   {
     name: "Floridaman",
@@ -285,19 +285,19 @@ SLOT_DATABASE.push(
     name: "Looney Pop",
     provider: "Avatar UX",
     maxWin: "50000x",
-    demo: "https://clashofslots.com/slots/avatarux/looney-pop/",
+    demo: "https://clashofslots.com/slots/avatarux/looneypop/",
   },
   {
     name: "Pop O'Gold",
     provider: "Avatar UX",
     maxWin: "20000x",
-    demo: "https://clashofslots.com/slots/avatarux/pop-ogold/",
+    demo: "https://clashofslots.com/slots/avatarux/pop-o-gold-popwins/",
   },
   {
     name: "Tiki Pop",
     provider: "Avatar UX",
     maxWin: "32015x",
-    demo: "https://clashofslots.com/slots/avatarux/tiki-pop/",
+    demo: "https://clashofslots.com/slots/avatarux/tikipop/",
   },
   {
     name: "Wild Pops",
@@ -309,7 +309,7 @@ SLOT_DATABASE.push(
     name: "Witchy POPpins",
     provider: "Avatar UX",
     maxWin: "20000x",
-    demo: "https://clashofslots.com/slots/avatarux/witchy-poppins/",
+    demo: "https://clashofslots.com/slots/avatarux/witchypoppins/",
   },
   {
     name: "Zombie aPOPalypse",
@@ -327,7 +327,7 @@ SLOT_DATABASE.push(
     name: "Critter Pop",
     provider: "Avatar UX",
     maxWin: "20000x",
-    demo: "https://clashofslots.com/slots/avatarux/critter-pop/",
+    demo: "https://clashofslots.com/slots/avatarux/critterpop/",
   },
   {
     name: "HelioPOPolis",
@@ -345,7 +345,7 @@ SLOT_DATABASE.push(
     name: "Hippo Pop",
     provider: "Avatar UX",
     maxWin: "20000x",
-    demo: "https://clashofslots.com/slots/avatarux/hippo-pop/",
+    demo: "https://clashofslots.com/slots/avatarux/hippopop/",
   },
   {
     name: "JinglePOP",
@@ -399,7 +399,7 @@ SLOT_DATABASE.push(
     name: "Monkey Pop",
     provider: "Avatar UX",
     maxWin: "20000x",
-    demo: "https://clashofslots.com/slots/avatarux/monekypop/",
+    demo: "https://clashofslots.com/slots/avatarux/monkeypop/",
   },
   {
     name: "Raging Pop",
@@ -411,7 +411,7 @@ SLOT_DATABASE.push(
     name: "Donkey and The GOATS",
     provider: "Avatar UX",
     maxWin: "20000x",
-    demo: "https://clashofslots.com/slots/avatarux/donkey-and-the-goats/",
+    demo: "https://slotslaunch.com/avatarux/donkey-and-the-goats",
   },
   {
     name: "HipHopPop",
