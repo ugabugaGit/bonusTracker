@@ -1,4 +1,4 @@
-const SLOT_DATABASE = [
+SLOT_DATABASE.push(
   {
     name: "Chaos Crew",
     provider: "Hacksaw Gaming",
@@ -905,4 +905,4 @@ const SLOT_DATABASE = [
     maxWin: "10000x",
     demo: "https://clashofslots.com/slots/hacksaw-gaming/mystery-motel/",
   },
-];
+);
