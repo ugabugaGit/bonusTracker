@@ -662,7 +662,7 @@ function shuffleByTierKeepOrder(games) {
 function getOrderedGamesForRender() {
   const games = currentOpeningGames;
 
-  if (Array.isArray(openingOrder) && openingOrder.length) {
+  if (Array.isArray(openingOrder) && openingOrder.length === games.length) {
     const byId = new Map(games.map((g) => [Number(g.id), g]));
     const ordered = [];
 
