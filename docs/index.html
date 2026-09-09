@@ -381,6 +381,25 @@
         <div id="new-phase-play" class="panel" hidden>
           <div class="panel__title">Opening</div>
 
+          <div class="live-opening-status" id="live-opening-status" aria-label="Live opening status">
+            <div class="live-opening-stat">
+              <div class="live-opening-stat__label">Games</div>
+              <div class="live-opening-stat__value" id="live-games">0</div>
+            </div>
+            <div class="live-opening-stat">
+              <div class="live-opening-stat__label">Wagered</div>
+              <div class="live-opening-stat__value" id="live-wagered">-</div>
+            </div>
+            <div class="live-opening-stat">
+              <div class="live-opening-stat__label">Wins</div>
+              <div class="live-opening-stat__value" id="live-wins">0</div>
+            </div>
+            <div class="live-opening-stat live-opening-stat--pl">
+              <div class="live-opening-stat__label">P/L</div>
+              <div class="live-opening-stat__value" id="live-pl">-</div>
+            </div>
+          </div>
+
           <div class="opening-sticky">
             <div class="opening-sticky__inner">
               <div class="summary-card">
@@ -422,7 +441,7 @@
                   </div>
                 </div>
                 <div class="row">
-                  <div class="label">Break-even avg X:</div>
+                  <div class="label">Break-even X:</div>
                   <div class="value" id="break-even-x">-</div>
                 </div>
                 <div class="row">
@@ -430,7 +449,7 @@
                   <div class="value" id="current-avg-x">-</div>
                 </div>
                 <div class="row">
-                  <div class="label">Best win game:</div>
+                  <div class="label">Best win:</div>
                   <div class="value" id="best-win-game">-</div>
                 </div>
                 <div class="row">

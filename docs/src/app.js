@@ -153,6 +153,11 @@ const activeGameMaxXEl = document.getElementById("active-game-maxx");
 const activeGameBetEl = document.getElementById("active-game-bet");
 const hudWinInputEl = document.getElementById("hud-win-input");
 
+const liveGamesEl = document.getElementById("live-games");
+const liveWageredEl = document.getElementById("live-wagered");
+const liveWinsEl = document.getElementById("live-wins");
+const livePlEl = document.getElementById("live-pl");
+
 let activeGameId = null;
 
 function focusHudWinInput() {
@@ -806,7 +811,40 @@ function getOrderedGamesForRender() {
   return ids.map((id) => byId.get(Number(id))).filter(Boolean);
 }
 
+function renderLiveOpeningStatus() {
+  if (!liveGamesEl || !liveWageredEl || !liveWinsEl || !livePlEl) return;
+
+  const games = currentOpeningGames;
+  let totalBet = 0;
+  let totalWin = 0;
+  let completedWins = 0;
+
+  games.forEach((g) => {
+    const bet = Number(g.bet);
+    const win = g.win === null || g.win === undefined ? null : Number(g.win);
+
+    if (Number.isFinite(bet)) totalBet += bet;
+
+    if (win !== null && Number.isFinite(win)) {
+      totalWin += win;
+      completedWins += 1;
+    }
+  });
+
+  const wagered = totalBet * BONUS_COST_X;
+  const profit = totalWin - wagered;
+
+  liveGamesEl.textContent = String(games.length);
+  liveWageredEl.textContent = games.length ? formatMoneyFromARS(wagered) : "-";
+  liveWinsEl.textContent = String(completedWins);
+  livePlEl.textContent = games.length ? formatMoneyFromARS(profit) : "-";
+  livePlEl.classList.toggle("is-positive", profit >= 0 && games.length > 0);
+  livePlEl.classList.toggle("is-negative", profit < 0);
+}
+
 function renderNewOpeningSummary() {
+  renderLiveOpeningStatus();
+
   if (!breakEvenXEl || !currentAvgXEl || !bestWinGameEl || !endBalanceEl)
     return;
 
@@ -3748,3 +3786,45 @@ if (providerFilter) {
 }
 
 console.log("app.js fully initialized✅");
+
+/* Remove any duplicate/empty Starting balance row that may be injected
+   into the active Opening summary. Keep only the row with the real
+   active-starting-balance input. */
+function removeDuplicateActiveStartingBalanceRows() {
+  const summaryCard = document.querySelector("#new-phase-play .summary-card");
+  if (!summaryCard) return;
+
+  const rows = summaryCard.querySelectorAll(".row");
+
+  rows.forEach((row) => {
+    const label = row.querySelector(".label");
+    if (!label) return;
+
+    if (label.textContent.trim().toLowerCase() !== "starting balance:") {
+      return;
+    }
+
+    const hasRealActiveBalance =
+      row.querySelector("#active-starting-balance-input") !== null;
+
+    if (!hasRealActiveBalance) {
+      row.remove();
+    }
+  });
+}
+
+removeDuplicateActiveStartingBalanceRows();
+
+const activeStartingBalanceSummary =
+  document.querySelector("#new-phase-play .summary-card");
+
+if (activeStartingBalanceSummary) {
+  const balanceRowObserver = new MutationObserver(() => {
+    removeDuplicateActiveStartingBalanceRows();
+  });
+
+  balanceRowObserver.observe(activeStartingBalanceSummary, {
+    childList: true,
+    subtree: true,
+  });
+}
