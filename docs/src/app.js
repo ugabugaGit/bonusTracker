@@ -132,6 +132,18 @@ const currentAvgXEl = document.getElementById("current-avg-x");
 const bestWinGameEl = document.getElementById("best-win-game");
 const endBalanceEl = document.getElementById("end-balance");
 const startOpeningBtn = document.getElementById("start-opening-btn");
+const activeStartingBalanceInput = document.getElementById(
+  "active-starting-balance-input",
+);
+const activeStartingBalanceCurrency = document.getElementById(
+  "active-starting-balance-currency",
+);
+const activeStartingBalanceEditBtn = document.getElementById(
+  "active-starting-balance-edit",
+);
+const activeStartingBalanceSaveBtn = document.getElementById(
+  "active-starting-balance-save",
+);
 
 const activeGameNameEl = document.getElementById("active-game-name");
 const activeGameAvgXEl = document.getElementById("active-game-avgx");
@@ -360,6 +372,7 @@ function initFxUI() {
     renderOverallTotals();
     renderArchiveList();
     renderNewOpeningSummary();
+    renderActiveStartingBalance();
     renderGameList();
     if (finishModal && !finishModal.classList.contains("hidden"))
       renderFinishModal();
@@ -490,6 +503,113 @@ function setStartBalanceLocked(locked) {
   startingBalanceInput.disabled = !!locked;
 }
 
+function renderActiveStartingBalance() {
+  if (!activeStartingBalanceInput || !activeStartingBalanceCurrency) {
+    return;
+  }
+
+  if (currentOpeningStartBalanceInput === null) {
+    activeStartingBalanceInput.value = "";
+  } else {
+    activeStartingBalanceInput.value = String(currentOpeningStartBalanceInput);
+  }
+
+  activeStartingBalanceCurrency.value = currentOpeningCurrency || "ARS";
+}
+
+function setActiveStartingBalanceEditing(editing) {
+  if (
+    !activeStartingBalanceInput ||
+    !activeStartingBalanceCurrency ||
+    !activeStartingBalanceEditBtn ||
+    !activeStartingBalanceSaveBtn
+  ) {
+    return;
+  }
+
+  activeStartingBalanceInput.disabled = !editing;
+  activeStartingBalanceCurrency.disabled = !editing;
+
+  activeStartingBalanceEditBtn.hidden = editing;
+  activeStartingBalanceSaveBtn.hidden = !editing;
+
+  if (editing) {
+    activeStartingBalanceInput.focus();
+    activeStartingBalanceInput.select();
+  }
+}
+
+function saveActiveStartingBalance() {
+  if (!activeStartingBalanceInput || !activeStartingBalanceCurrency) {
+    return;
+  }
+
+  const raw = activeStartingBalanceInput.value.trim();
+  const amount = raw === "" ? null : Number(raw);
+  const currency = activeStartingBalanceCurrency.value || "ARS";
+
+  if (amount === null || !Number.isFinite(amount) || amount < 0) {
+    alert("Enter a valid Starting balance.");
+    return;
+  }
+
+  if (!isCurrencyReady(currency)) {
+    alert("Selected currency is not available.");
+    return;
+  }
+
+  const ars = toARS(amount, currency);
+
+  if (ars === null || !Number.isFinite(ars)) {
+    alert("Could not convert Starting balance.");
+    return;
+  }
+
+  currentOpeningStartBalanceInput = amount;
+  currentOpeningCurrency = currency;
+  currentOpeningStartBalance = ars;
+
+  saveCurrentStartBalance();
+
+  if (startingBalanceInput) {
+    startingBalanceInput.value = String(amount);
+  }
+
+  if (openingCurrencySelect) {
+    openingCurrencySelect.value = currency;
+  }
+
+  if (betCurrencySelect) {
+    betCurrencySelect.value = currency;
+  }
+
+  setActiveStartingBalanceEditing(false);
+
+  renderActiveStartingBalance();
+  renderNewOpeningSummary();
+  renderActiveStartingBalance();
+
+  updatePreButtonState();
+  updateStartButtonState();
+}
+
+if (activeStartingBalanceEditBtn) {
+  activeStartingBalanceEditBtn.addEventListener("click", () => {
+    if (!openingStarted) return;
+
+    renderActiveStartingBalance();
+    setActiveStartingBalanceEditing(true);
+  });
+}
+
+if (activeStartingBalanceSaveBtn) {
+  activeStartingBalanceSaveBtn.addEventListener("click", () => {
+    if (!openingStarted) return;
+
+    saveActiveStartingBalance();
+  });
+}
+
 function renderPhases() {
   if (!phasePre || !phaseAdd || !phasePlay) return;
 
@@ -612,6 +732,7 @@ if (startingBalanceInput) {
     updatePreButtonState();
     updateStartButtonState();
     renderNewOpeningSummary();
+    renderActiveStartingBalance();
   });
 
   if (openingCurrencySelect) {
@@ -634,6 +755,7 @@ if (startingBalanceInput) {
       updatePreButtonState();
       updateStartButtonState();
       renderNewOpeningSummary();
+      renderActiveStartingBalance();
 
       if (betCurrencySelect) betCurrencySelect.value = currentOpeningCurrency;
     });
@@ -724,7 +846,21 @@ function renderNewOpeningSummary() {
 
   let best = null;
   for (const g of done) {
-    if (!best || Number(g.win) > Number(best.win)) best = g;
+    const bet = Number(g.bet);
+    const win = Number(g.win);
+
+    if (!Number.isFinite(bet) || bet <= 0 || !Number.isFinite(win)) {
+      continue;
+    }
+
+    const x = win / bet;
+
+    if (!best || x > best.x) {
+      best = {
+        game: g,
+        x,
+      };
+    }
   }
 
   const endBalance = sumWinDone;
@@ -737,8 +873,9 @@ function renderNewOpeningSummary() {
   if (!best) {
     bestWinGameEl.textContent = "-";
   } else {
-    const x = Number(best.win) / Number(best.bet);
-    bestWinGameEl.textContent = `${best.name} (${formatMoneyFromARS(Number(best.win))} | ${x.toFixed(2)}x)`;
+    const game = best.game;
+
+    bestWinGameEl.textContent = `${game.name} (${formatMoneyFromARS(Number(game.win))} | ${best.x.toFixed(2)}x)`;
   }
 
   endBalanceEl.textContent = formatMoneyFromARS(endBalance);
@@ -1015,6 +1152,7 @@ function renderGameList() {
       renderNewOpeningSummary();
       updateStartButtonState();
       updateFinishButtonState();
+      renderActiveStartingBalance();
       updateShuffleButtonsState();
     });
   });
@@ -1100,6 +1238,7 @@ if (addGameForm) {
 
     renderNewOpeningCounter();
     renderNewOpeningSummary();
+    renderActiveStartingBalance();
     updateStartButtonState();
     updateShuffleButtonsState();
     renderGameList();
@@ -1141,6 +1280,7 @@ if (startNewOpeningBtn) {
     renderGameList();
     renderNewOpeningCounter();
     renderNewOpeningSummary();
+    renderActiveStartingBalance();
     updateStartButtonState();
     updatePreButtonState();
     updateFinishButtonState();
@@ -1177,7 +1317,9 @@ if (startOpeningBtn) {
 
     renderPhases();
     renderGameList();
+    renderActiveStartingBalance();
     renderNewOpeningSummary();
+    renderActiveStartingBalance();
     updateStartButtonState();
     updateFinishButtonState();
     updateShuffleButtonsState();
@@ -1215,6 +1357,7 @@ if (startOpeningBtn) {
       saveCurrentOpening();
 
       renderNewOpeningSummary();
+      renderActiveStartingBalance();
       updateFinishButtonState();
       renderGameList();
 
@@ -1256,6 +1399,7 @@ if (shuffleOpeningBtn) {
 
     renderGameList();
     renderNewOpeningSummary();
+    renderActiveStartingBalance();
     updateFinishButtonState();
     setActiveGameId(findNextIncompleteGameId(), { focus: true });
   });
@@ -1287,6 +1431,7 @@ if (cancelOpeningBtn) {
     renderGameList();
     renderNewOpeningCounter();
     renderNewOpeningSummary();
+    renderActiveStartingBalance();
     updatePreButtonState();
     updateStartButtonState();
     updateFinishButtonState();
@@ -1506,6 +1651,7 @@ if (finishModalSave) {
     renderOverallTotals();
     renderNewOpeningCounter();
     renderNewOpeningSummary();
+    renderActiveStartingBalance();
     updatePreButtonState();
     updateStartButtonState();
     updateFinishButtonState();
@@ -2191,6 +2337,7 @@ function applyBackup(obj) {
   renderOverallTotals();
   renderNewOpeningCounter();
   renderNewOpeningSummary();
+  renderActiveStartingBalance();
 
   updatePreButtonState();
   updateStartButtonState();
@@ -2258,6 +2405,7 @@ renderStats();
 renderOverallTotals();
 renderNewOpeningCounter();
 renderNewOpeningSummary();
+renderActiveStartingBalance();
 
 updatePreButtonState();
 updateStartButtonState();
