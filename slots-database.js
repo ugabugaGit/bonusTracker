@@ -1,1 +1,0 @@
-const SLOT_DATABASE = [];
