@@ -154,3 +154,38 @@ setTimeout(() => {
 
   initStartingBalanceEditor();
 }, 0);
+
+// During an active opening, the "Best win game" metric is ranked by X
+// (win / bet), not by the absolute monetary win.
+setTimeout(() => {
+  if (typeof renderNewOpeningSummary !== "function") return;
+  const originalRenderNewOpeningSummary = renderNewOpeningSummary;
+
+  window.renderNewOpeningSummary = function () {
+    originalRenderNewOpeningSummary();
+
+    if (!bestWinGameEl) return;
+
+    const done = currentOpeningGames.filter((g) => {
+      const win = Number(g.win);
+      const bet = Number(g.bet);
+      return Number.isFinite(win) && Number.isFinite(bet) && bet > 0;
+    });
+
+    if (!done.length) {
+      bestWinGameEl.textContent = "-";
+      return;
+    }
+
+    const best = done.reduce((currentBest, game) => {
+      const x = Number(game.win) / Number(game.bet);
+      if (!currentBest) return game;
+      return x > Number(currentBest.win) / Number(currentBest.bet)
+        ? game
+        : currentBest;
+    }, null);
+
+    const x = Number(best.win) / Number(best.bet);
+    bestWinGameEl.textContent = `${best.name} (${formatMoneyFromARS(Number(best.win))} | ${x.toFixed(2)}x)`;
+  };
+}, 0);
