@@ -1,0 +1,3750 @@
+console.log("Bonus Opening Tracker: app.js loaded");
+
+const views = {
+  stats: document.getElementById("view-stats"),
+  archive: document.getElementById("view-archive"),
+  new: document.getElementById("view-new"),
+  analytics: document.getElementById("view-analytics"),
+  slots: document.getElementById("view-slots"),
+};
+
+const menuButtons = document.querySelectorAll(".menu__btn");
+
+function showView(viewKey) {
+  Object.entries(views).forEach(([key, el]) => {
+    el.hidden = key !== viewKey;
+  });
+
+  menuButtons.forEach((btn) => {
+    btn.classList.toggle("menu__btn--active", btn.dataset.view === viewKey);
+  });
+
+  if (viewKey === "analytics") {
+    renderProfitChart();
+    renderGameProfitChart();
+    renderBankrollChart();
+    renderHitStats();
+    renderWinDistributionChart();
+    renderMedianX();
+    renderHighestX();
+    renderBestOpening();
+    renderGameHeatmap();
+    renderBestGameEver();
+    renderWorstGameEver();
+    renderGamePerformance();
+  }
+  if (viewKey === "slots") {
+    renderSlots();
+  }
+}
+
+let gamePerformanceRows = [];
+let gameSortColumn = "profit";
+let gameSortAsc = false;
+
+menuButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    showView(btn.dataset.view);
+  });
+});
+
+function moveMenuIndicator() {
+  const indicator = document.querySelector(".menu__indicator");
+  const active = document.querySelector(".menu__btn--active");
+
+  if (!indicator || !active) return;
+
+  indicator.style.width = active.offsetWidth + "px";
+  indicator.style.left = active.offsetLeft + "px";
+}
+
+showView("stats");
+
+populateProviderFilter();
+
+const addGameForm = document.getElementById("add-game-form");
+const gameNameInput = document.getElementById("game-name-input");
+const betSizeInput = document.getElementById("bet-size-input");
+const betCurrencySelect = document.getElementById("bet-currency-select");
+const gameList = document.getElementById("game-list");
+const isSuperInput = document.getElementById("is-super-input");
+const isHiddenInput = document.getElementById("is-hidden-input");
+const startNewOpeningBtn = document.getElementById("start-new-opening-btn");
+const finishOpeningBtn = document.getElementById("finish-opening-btn");
+const cancelOpeningBtn = document.getElementById("cancel-opening-btn");
+const shuffleOpeningBtn = document.getElementById("shuffle-opening-btn");
+const shuffleAddBtn = document.getElementById("shuffle-add-btn");
+
+const archiveList = document.getElementById("archive-list");
+const archiveDetail = document.getElementById("archive-detail");
+const archiveSortSelect = document.getElementById("archive-sort");
+const archiveTagSelect = document.getElementById("archive-tag");
+const archiveOnly100xInput = document.getElementById("archive-only100x");
+const archiveSearchInput = document.getElementById("archive-search");
+
+const statsTbody = document.getElementById("stats-tbody");
+const statsSortSelect = document.getElementById("stats-sort");
+const statsSearchInput = document.getElementById("stats-search");
+
+const clearArchiveFilterBtn = document.getElementById(
+  "clear-archive-filter-btn",
+);
+const exportBtn = document.getElementById("export-btn");
+const importBtn = document.getElementById("import-btn");
+const importInput = document.getElementById("import-input");
+
+const totalsBetEl = document.getElementById("totals-bet");
+const totalsWinEl = document.getElementById("totals-win");
+const totalsProfitEl = document.getElementById("totals-profit");
+const totalsRoiEl = document.getElementById("totals-roi");
+
+const finishModal = document.getElementById("finish-modal");
+const finishModalClose = document.getElementById("finish-modal-close");
+const finishModalCancel = document.getElementById("finish-modal-cancel");
+const finishModalSave = document.getElementById("finish-modal-save");
+
+const finishSumGames = document.getElementById("finish-sum-games");
+const finishSumSuper = document.getElementById("finish-sum-super");
+const finishSumHidden = document.getElementById("finish-sum-hidden");
+const finishSumBet = document.getElementById("finish-sum-bet");
+const finishSumWin = document.getElementById("finish-sum-win");
+const finishSumProfit = document.getElementById("finish-sum-profit");
+const finishSumRoi = document.getElementById("finish-sum-roi");
+const finishSumRows = document.getElementById("finish-sum-rows");
+
+const countGamesEl = document.getElementById("count-games");
+const countSuperEl = document.getElementById("count-super");
+const countHiddenEl = document.getElementById("count-hidden");
+
+const fxDisplaySelect = document.getElementById("fx-display");
+const openingCurrencySelect = document.getElementById(
+  "opening-currency-select",
+);
+document.getElementById("fx-display").addEventListener("change", () => {
+  renderProfitChart();
+  renderGameProfitChart();
+  renderBankrollChart();
+});
+
+const startingBalanceInput = document.getElementById("starting-balance-input");
+const breakEvenXEl = document.getElementById("break-even-x");
+const currentAvgXEl = document.getElementById("current-avg-x");
+const bestWinGameEl = document.getElementById("best-win-game");
+const endBalanceEl = document.getElementById("end-balance");
+const startOpeningBtn = document.getElementById("start-opening-btn");
+const activeStartingBalanceInput = document.getElementById(
+  "active-starting-balance-input",
+);
+const activeStartingBalanceCurrency = document.getElementById(
+  "active-starting-balance-currency",
+);
+const activeStartingBalanceEditBtn = document.getElementById(
+  "active-starting-balance-edit",
+);
+const activeStartingBalanceSaveBtn = document.getElementById(
+  "active-starting-balance-save",
+);
+
+const activeGameNameEl = document.getElementById("active-game-name");
+const activeGameAvgXEl = document.getElementById("active-game-avgx");
+const activeGameLast30El = document.getElementById("active-game-last30");
+const activeGameMaxXEl = document.getElementById("active-game-maxx");
+
+const activeGameBetEl = document.getElementById("active-game-bet");
+const hudWinInputEl = document.getElementById("hud-win-input");
+
+let activeGameId = null;
+
+function focusHudWinInput() {
+  if (!hudWinInputEl) return;
+  hudWinInputEl.focus();
+  hudWinInputEl.select();
+}
+
+function findNextIncompleteGameId() {
+  const ordered = getOrderedGamesForRender();
+  const next = ordered.find((g) => !isFiniteNumber(g.win));
+  return next ? Number(next.id) : ordered[0] ? Number(ordered[0].id) : null;
+}
+
+function setActiveGameId(id, opts = {}) {
+  const { focus = true } = opts;
+  const n = Number(id);
+  if (!Number.isFinite(n)) return;
+  activeGameId = n;
+  renderActiveGameInfo();
+  renderGameList();
+  if (focus) focusHudWinInput();
+}
+const finishHintEl = document.getElementById("finish-hint");
+
+const phasePre = document.getElementById("new-phase-pre");
+const phaseAdd = document.getElementById("new-phase-add");
+const phasePlay = document.getElementById("new-phase-play");
+
+const openingStickyEl = document.querySelector(".opening-sticky");
+
+let currentOpeningGames = [];
+let archiveFilterName = null;
+let archiveSortKey = "newest";
+let archiveTagFilter = "all";
+let archiveOnly100x = false;
+let archiveSearchQuery = "";
+
+let currentOpeningStartBalance = null;
+let currentOpeningStartBalanceInput = null;
+let currentOpeningCurrency = "ARS";
+let openingStarted = false;
+let openingOrder = [];
+let openingPrepared = false;
+let editingGameId = null;
+
+const STORAGE_KEY = "bonus-opening-tracker.currentOpeningGames";
+const ARCHIVE_KEY = "bonus-opening-tracker.archive";
+const ARCHIVE_UI_KEY = "bonus-opening-tracker.archiveUI";
+
+const ARCHIVE_LAST_NUMBER_KEY = "bonus-opening-tracker.archiveLastNumber";
+const BONUS_COST_X = 100;
+const START_BAL_KEY = "bonus-opening-tracker.currentOpeningStartBalance";
+const OPENING_STARTED_KEY = "bonus-opening-tracker.openingStarted";
+const OPENING_ORDER_KEY = "bonus-opening-tracker.openingOrder";
+const OPENING_PREPARED_KEY = "bonus-opening-tracker.openingPrepared";
+
+const FX_KEY = "bonus-opening-tracker.fx";
+
+const FX_RATES = {
+  arsPerEUR: 1636.97,
+  arsPerUSD: 1390.2,
+};
+
+let fx = {
+  base: "ARS",
+  display: "ARS",
+};
+
+function loadFx() {
+  try {
+    const raw = localStorage.getItem(FX_KEY);
+    if (!raw) return;
+    const obj = JSON.parse(raw);
+    if (!obj || typeof obj !== "object") return;
+    if (obj.display) fx.display = obj.display;
+  } catch {}
+}
+
+function saveFx() {
+  try {
+    localStorage.setItem(FX_KEY, JSON.stringify({ display: fx.display }));
+  } catch {}
+}
+
+function loadArchiveUI() {
+  try {
+    const raw = localStorage.getItem(ARCHIVE_UI_KEY);
+    if (!raw) return;
+    const obj = JSON.parse(raw);
+    if (!obj || typeof obj !== "object") return;
+    if (obj.sort) archiveSortKey = String(obj.sort);
+    if (obj.tag) archiveTagFilter = String(obj.tag);
+    if (typeof obj.only100x === "boolean") archiveOnly100x = obj.only100x;
+    if (typeof obj.q === "string") archiveSearchQuery = obj.q;
+  } catch {}
+}
+
+function saveArchiveUI() {
+  try {
+    localStorage.setItem(
+      ARCHIVE_UI_KEY,
+      JSON.stringify({
+        sort: archiveSortKey,
+        tag: archiveTagFilter,
+        only100x: !!archiveOnly100x,
+        q: archiveSearchQuery || "",
+      }),
+    );
+  } catch {}
+}
+
+function initArchiveUI() {
+  if (archiveSortSelect) archiveSortSelect.value = archiveSortKey;
+  if (archiveTagSelect) archiveTagSelect.value = archiveTagFilter;
+  if (archiveOnly100xInput) archiveOnly100xInput.checked = !!archiveOnly100x;
+  if (archiveSearchInput) archiveSearchInput.value = archiveSearchQuery || "";
+
+  if (archiveSortSelect) {
+    archiveSortSelect.addEventListener("change", () => {
+      archiveSortKey = archiveSortSelect.value || "newest";
+      saveArchiveUI();
+      renderArchiveList();
+    });
+  }
+
+  if (archiveTagSelect) {
+    archiveTagSelect.addEventListener("change", () => {
+      archiveTagFilter = archiveTagSelect.value || "all";
+      saveArchiveUI();
+      renderArchiveList();
+    });
+  }
+
+  if (archiveOnly100xInput) {
+    archiveOnly100xInput.addEventListener("change", () => {
+      archiveOnly100x = !!archiveOnly100xInput.checked;
+      saveArchiveUI();
+      renderArchiveList();
+    });
+  }
+
+  if (archiveSearchInput) {
+    archiveSearchInput.addEventListener("input", () => {
+      archiveSearchQuery = archiveSearchInput.value || "";
+      saveArchiveUI();
+      renderArchiveList();
+    });
+  }
+}
+
+function getArsPerUnit(code) {
+  if (code === "ARS") return 1;
+  if (code === "EUR")
+    return Number.isFinite(FX_RATES.arsPerEUR) ? FX_RATES.arsPerEUR : null;
+  if (code === "USD")
+    return Number.isFinite(FX_RATES.arsPerUSD) ? FX_RATES.arsPerUSD : null;
+  return null;
+}
+
+function isCurrencyReady(code) {
+  if (code === "ARS") return true;
+  const r = getArsPerUnit(code);
+  return Number.isFinite(r) && r > 0;
+}
+
+function toARS(amount, code) {
+  const r = getArsPerUnit(code);
+  if (!Number.isFinite(amount)) return null;
+  if (!r || r <= 0) return null;
+  return Number(amount) * r;
+}
+
+function fromARS(amountARS, code) {
+  const r = getArsPerUnit(code);
+  if (!Number.isFinite(amountARS)) return null;
+  if (code === "ARS") return Number(amountARS);
+  if (!r || r <= 0) return null;
+  return Number(amountARS) / r;
+}
+
+function formatMoneyFromARS(amountARS) {
+  const code = fx.display || "ARS";
+  const v = fromARS(amountARS, code);
+  if (v === null) return "—";
+
+  const num = Number(v).toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  if (code === "EUR") return `€${num}`;
+  if (code === "USD") return `$${num}`;
+  return `ARS ${num}`;
+}
+
+function currencySymbol(code) {
+  if (code === "EUR") return "€";
+  if (code === "USD") return "$";
+  return "ARS";
+}
+
+function initFxUI() {
+  if (!fxDisplaySelect) return;
+  fxDisplaySelect.value = fx.display || "ARS";
+
+  fxDisplaySelect.addEventListener("change", () => {
+    const next = fxDisplaySelect.value;
+    if (!isCurrencyReady(next)) {
+      alert("USD rate is not configured in code yet (FX_RATES.arsPerUSD).");
+      fxDisplaySelect.value = fx.display || "ARS";
+      return;
+    }
+    fx.display = next;
+    saveFx();
+    renderStats();
+    renderOverallTotals();
+    renderArchiveList();
+    renderNewOpeningSummary();
+    renderActiveStartingBalance();
+    renderGameList();
+    if (finishModal && !finishModal.classList.contains("hidden"))
+      renderFinishModal();
+    setTimeout(() => {
+      renderProfitChart();
+      renderGameProfitChart();
+      renderBankrollChart();
+    }, 0);
+  });
+}
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function sumWins(games) {
+  return (games || []).reduce((s, g) => {
+    const w = g.win === null || g.win === undefined ? null : Number(g.win);
+    return s + (w !== null && Number.isFinite(w) ? w : 0);
+  }, 0);
+}
+
+function isFiniteNumber(v) {
+  return v !== null && v !== undefined && Number.isFinite(Number(v));
+}
+
+function normalizeName(s) {
+  return String(s || "").trim();
+}
+
+function saveCurrentOpening() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(currentOpeningGames));
+}
+
+function loadCurrentOpening() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return;
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      currentOpeningGames = parsed.map((g) => {
+        if (!g || typeof g !== "object") return g;
+        return {
+          ...g,
+          betCurrency: g.betCurrency || "ARS",
+          winCurrency: g.winCurrency || g.betCurrency || "ARS",
+          betInput: isFiniteNumber(g.betInput) ? Number(g.betInput) : null,
+          winInput: isFiniteNumber(g.winInput)
+            ? Number(g.winInput)
+            : isFiniteNumber(g.win)
+              ? Number(g.win)
+              : null,
+        };
+      });
+    }
+  } catch {}
+}
+
+function saveCurrentStartBalance() {
+  localStorage.setItem(
+    START_BAL_KEY,
+    JSON.stringify({
+      currency: currentOpeningCurrency,
+      input: currentOpeningStartBalanceInput,
+      ars: currentOpeningStartBalance,
+    }),
+  );
+}
+
+function loadCurrentStartBalance() {
+  const raw = localStorage.getItem(START_BAL_KEY);
+  if (!raw) return;
+  try {
+    const v = JSON.parse(raw);
+
+    if (isFiniteNumber(v)) {
+      currentOpeningCurrency = "ARS";
+      currentOpeningStartBalanceInput = Number(v);
+      currentOpeningStartBalance = Number(v);
+      return;
+    }
+
+    if (v && typeof v === "object") {
+      currentOpeningCurrency = v.currency || "ARS";
+      currentOpeningStartBalanceInput = isFiniteNumber(v.input)
+        ? Number(v.input)
+        : null;
+      currentOpeningStartBalance = isFiniteNumber(v.ars) ? Number(v.ars) : null;
+    }
+  } catch {}
+}
+
+function saveOpeningState() {
+  localStorage.setItem(OPENING_STARTED_KEY, JSON.stringify(openingStarted));
+  localStorage.setItem(OPENING_ORDER_KEY, JSON.stringify(openingOrder));
+  localStorage.setItem(OPENING_PREPARED_KEY, JSON.stringify(openingPrepared));
+}
+
+function loadOpeningState() {
+  try {
+    openingStarted =
+      JSON.parse(localStorage.getItem(OPENING_STARTED_KEY)) === true;
+  } catch {
+    openingStarted = false;
+  }
+
+  try {
+    const o = JSON.parse(localStorage.getItem(OPENING_ORDER_KEY));
+    openingOrder = Array.isArray(o) ? o : [];
+  } catch {
+    openingOrder = [];
+  }
+
+  try {
+    openingPrepared =
+      JSON.parse(localStorage.getItem(OPENING_PREPARED_KEY)) === true;
+  } catch {
+    openingPrepared = false;
+  }
+}
+
+function setStartBalanceLocked(locked) {
+  if (!startingBalanceInput) return;
+  startingBalanceInput.disabled = !!locked;
+}
+
+function renderActiveStartingBalance() {
+  if (!activeStartingBalanceInput || !activeStartingBalanceCurrency) {
+    return;
+  }
+
+  if (currentOpeningStartBalanceInput === null) {
+    activeStartingBalanceInput.value = "";
+  } else {
+    activeStartingBalanceInput.value = String(currentOpeningStartBalanceInput);
+  }
+
+  activeStartingBalanceCurrency.value = currentOpeningCurrency || "ARS";
+}
+
+function setActiveStartingBalanceEditing(editing) {
+  if (
+    !activeStartingBalanceInput ||
+    !activeStartingBalanceCurrency ||
+    !activeStartingBalanceEditBtn ||
+    !activeStartingBalanceSaveBtn
+  ) {
+    return;
+  }
+
+  activeStartingBalanceInput.disabled = !editing;
+  activeStartingBalanceCurrency.disabled = !editing;
+
+  activeStartingBalanceEditBtn.hidden = editing;
+  activeStartingBalanceSaveBtn.hidden = !editing;
+
+  if (editing) {
+    activeStartingBalanceInput.focus();
+    activeStartingBalanceInput.select();
+  }
+}
+
+function saveActiveStartingBalance() {
+  if (!activeStartingBalanceInput || !activeStartingBalanceCurrency) {
+    return;
+  }
+
+  const raw = activeStartingBalanceInput.value.trim();
+  const amount = raw === "" ? null : Number(raw);
+  const currency = activeStartingBalanceCurrency.value || "ARS";
+
+  if (amount === null || !Number.isFinite(amount) || amount < 0) {
+    alert("Enter a valid Starting balance.");
+    return;
+  }
+
+  if (!isCurrencyReady(currency)) {
+    alert("Selected currency is not available.");
+    return;
+  }
+
+  const ars = toARS(amount, currency);
+
+  if (ars === null || !Number.isFinite(ars)) {
+    alert("Could not convert Starting balance.");
+    return;
+  }
+
+  currentOpeningStartBalanceInput = amount;
+  currentOpeningCurrency = currency;
+  currentOpeningStartBalance = ars;
+
+  saveCurrentStartBalance();
+
+  if (startingBalanceInput) {
+    startingBalanceInput.value = String(amount);
+  }
+
+  if (openingCurrencySelect) {
+    openingCurrencySelect.value = currency;
+  }
+
+  if (betCurrencySelect) {
+    betCurrencySelect.value = currency;
+  }
+
+  setActiveStartingBalanceEditing(false);
+
+  renderActiveStartingBalance();
+  renderNewOpeningSummary();
+  renderActiveStartingBalance();
+
+  updatePreButtonState();
+  updateStartButtonState();
+}
+
+if (activeStartingBalanceEditBtn) {
+  activeStartingBalanceEditBtn.addEventListener("click", () => {
+    if (!openingStarted) return;
+
+    renderActiveStartingBalance();
+    setActiveStartingBalanceEditing(true);
+  });
+}
+
+if (activeStartingBalanceSaveBtn) {
+  activeStartingBalanceSaveBtn.addEventListener("click", () => {
+    if (!openingStarted) return;
+
+    saveActiveStartingBalance();
+  });
+}
+
+function renderPhases() {
+  if (!phasePre || !phaseAdd || !phasePlay) return;
+
+  const showPre = !openingPrepared && !openingStarted;
+  const showAdd = openingPrepared && !openingStarted;
+  const showPlay = openingStarted;
+
+  phasePre.hidden = !showPre;
+  phaseAdd.hidden = !showAdd;
+  phasePlay.hidden = !showPlay;
+
+  setOpeningHudActive(showPlay);
+}
+
+function setOpeningHudActive(active) {
+  if (!document?.body) return;
+
+  if (!active) {
+    document.documentElement.style.setProperty("--opening-hud-h", "0px");
+    return;
+  }
+
+  requestAnimationFrame(() => {
+    const h = openingStickyEl
+      ? Math.ceil(openingStickyEl.getBoundingClientRect().height)
+      : 0;
+    document.documentElement.style.setProperty("--opening-hud-h", `${h}px`);
+  });
+}
+
+window.addEventListener("resize", () => {
+  if (!document?.body?.classList?.contains("opening-hud-active")) return;
+  setOpeningHudActive(true);
+});
+
+function renderNewOpeningCounter() {
+  if (!countGamesEl || !countSuperEl || !countHiddenEl) return;
+
+  countGamesEl.textContent = String(currentOpeningGames.length);
+  countSuperEl.textContent = String(
+    currentOpeningGames.filter((g) => g.isSuper && !g.isHidden).length,
+  );
+  countHiddenEl.textContent = String(
+    currentOpeningGames.filter((g) => g.isHidden).length,
+  );
+}
+
+function updatePreButtonState() {
+  if (!startNewOpeningBtn) return;
+  const ok =
+    isFiniteNumber(currentOpeningStartBalance) &&
+    Number(currentOpeningStartBalance) >= 0;
+  startNewOpeningBtn.disabled = !ok || openingStarted || openingPrepared;
+}
+
+function updateStartButtonState() {
+  if (!startOpeningBtn) return;
+  startOpeningBtn.disabled =
+    openingStarted ||
+    currentOpeningGames.length === 0 ||
+    !isFiniteNumber(currentOpeningStartBalance);
+}
+
+function isAllWinsFilled() {
+  if (!openingStarted) return false;
+  if (!currentOpeningGames.length) return false;
+  return currentOpeningGames.every((g) => isFiniteNumber(g.win));
+}
+
+function updateFinishButtonState() {
+  if (!finishOpeningBtn) return;
+  if (!finishHintEl) return;
+
+  const canFinish = isAllWinsFilled();
+  finishOpeningBtn.disabled = !canFinish;
+
+  if (!openingStarted) {
+    finishHintEl.textContent = "";
+    return;
+  }
+
+  if (canFinish) {
+    finishHintEl.textContent = "Ready to finish ✅";
+    return;
+  }
+
+  const left = currentOpeningGames.filter((g) => !isFiniteNumber(g.win)).length;
+  finishHintEl.textContent = `Missing wins: ${left}`;
+}
+
+function updateShuffleButtonsState() {
+  if (shuffleAddBtn) {
+    shuffleAddBtn.disabled = openingStarted || currentOpeningGames.length < 2;
+  }
+  if (shuffleOpeningBtn) {
+    shuffleOpeningBtn.disabled =
+      !openingStarted || currentOpeningGames.length < 2;
+  }
+}
+
+if (startingBalanceInput) {
+  startingBalanceInput.addEventListener("input", () => {
+    const raw =
+      startingBalanceInput.value === ""
+        ? null
+        : Number(startingBalanceInput.value);
+    currentOpeningStartBalanceInput = isFiniteNumber(raw) ? Number(raw) : null;
+
+    if (currentOpeningStartBalanceInput === null) {
+      currentOpeningStartBalance = null;
+    } else {
+      const ars = toARS(
+        currentOpeningStartBalanceInput,
+        currentOpeningCurrency,
+      );
+      currentOpeningStartBalance = ars === null ? null : ars;
+    }
+
+    saveCurrentStartBalance();
+    updatePreButtonState();
+    updateStartButtonState();
+    renderNewOpeningSummary();
+    renderActiveStartingBalance();
+  });
+
+  if (openingCurrencySelect) {
+    openingCurrencySelect.addEventListener("change", () => {
+      const next = openingCurrencySelect.value || "ARS";
+      if (!isCurrencyReady(next)) {
+        alert("USD rate is not configured in code yet (FX_RATES.arsPerUSD).");
+        openingCurrencySelect.value = currentOpeningCurrency || "ARS";
+        return;
+      }
+      currentOpeningCurrency = next;
+      if (currentOpeningStartBalanceInput !== null) {
+        const ars = toARS(
+          currentOpeningStartBalanceInput,
+          currentOpeningCurrency,
+        );
+        currentOpeningStartBalance = ars === null ? null : ars;
+      }
+      saveCurrentStartBalance();
+      updatePreButtonState();
+      updateStartButtonState();
+      renderNewOpeningSummary();
+      renderActiveStartingBalance();
+
+      if (betCurrencySelect) betCurrencySelect.value = currentOpeningCurrency;
+    });
+  }
+}
+
+function getDefaultTierOrderedIds() {
+  const normal = currentOpeningGames.filter((g) => !g.isSuper && !g.isHidden);
+  const superG = currentOpeningGames.filter((g) => g.isSuper && !g.isHidden);
+  const hidden = currentOpeningGames.filter((g) => g.isHidden);
+  return [...normal, ...superG, ...hidden].map((g) => g.id);
+}
+
+function shuffleByTierKeepOrder(games) {
+  const normal = games.filter((g) => !g.isSuper && !g.isHidden);
+  const superG = games.filter((g) => g.isSuper && !g.isHidden);
+  const hidden = games.filter((g) => g.isHidden);
+
+  shuffle(normal);
+  shuffle(superG);
+  shuffle(hidden);
+
+  return [...normal, ...superG, ...hidden];
+}
+
+function getOrderedGamesForRender() {
+  const games = currentOpeningGames;
+
+  if (Array.isArray(openingOrder) && openingOrder.length === games.length) {
+    const byId = new Map(games.map((g) => [Number(g.id), g]));
+    const ordered = [];
+
+    for (const id of openingOrder) {
+      const g = byId.get(Number(id));
+      if (g) ordered.push(g);
+    }
+
+    for (const g of games) {
+      if (openingOrder.some((x) => Number(x) === Number(g.id))) continue;
+      ordered.push(g);
+    }
+
+    return ordered;
+  }
+
+  const ids = getDefaultTierOrderedIds();
+  const byId = new Map(games.map((g) => [Number(g.id), g]));
+  return ids.map((id) => byId.get(Number(id))).filter(Boolean);
+}
+
+function renderNewOpeningSummary() {
+  if (!breakEvenXEl || !currentAvgXEl || !bestWinGameEl || !endBalanceEl)
+    return;
+
+  const games = currentOpeningGames;
+
+  const totalBet = games.reduce((s, g) => {
+    const b = Number(g.bet);
+    return s + (Number.isFinite(b) ? b : 0);
+  }, 0);
+
+  const done = games.filter((g) => {
+    const w = g.win === null || g.win === undefined ? null : Number(g.win);
+    const b = Number(g.bet);
+    return w !== null && Number.isFinite(w) && Number.isFinite(b) && b > 0;
+  });
+
+  const sumBetDone = done.reduce((s, g) => s + Number(g.bet), 0);
+  const sumWinDone = done.reduce((s, g) => s + Number(g.win), 0);
+
+  const currentAvgX = sumBetDone > 0 ? sumWinDone / sumBetDone : null;
+  const remainingBet = totalBet - sumBetDone;
+
+  const start = currentOpeningStartBalance;
+  const targetWin = isFiniteNumber(start) ? Number(start) : null;
+
+  const remainingNeededWin =
+    targetWin === null ? null : Math.max(targetWin - sumWinDone, 0);
+
+  const breakEvenX =
+    targetWin === null
+      ? null
+      : totalBet <= 0
+        ? null
+        : remainingBet <= 0
+          ? 0
+          : remainingNeededWin / remainingBet;
+
+  let best = null;
+  for (const g of done) {
+    const bet = Number(g.bet);
+    const win = Number(g.win);
+
+    if (!Number.isFinite(bet) || bet <= 0 || !Number.isFinite(win)) {
+      continue;
+    }
+
+    const x = win / bet;
+
+    if (!best || x > best.x) {
+      best = {
+        game: g,
+        x,
+      };
+    }
+  }
+
+  const endBalance = sumWinDone;
+
+  breakEvenXEl.textContent =
+    breakEvenX === null ? "-" : `${breakEvenX.toFixed(2)}x`;
+  currentAvgXEl.textContent =
+    currentAvgX === null ? "-" : `${currentAvgX.toFixed(2)}x`;
+
+  if (!best) {
+    bestWinGameEl.textContent = "-";
+  } else {
+    const game = best.game;
+
+    bestWinGameEl.textContent = `${game.name} (${formatMoneyFromARS(Number(game.win))} | ${best.x.toFixed(2)}x)`;
+  }
+
+  endBalanceEl.textContent = formatMoneyFromARS(endBalance);
+  renderActiveGameInfo();
+}
+
+function isWinFilled(game) {
+  return isFiniteNumber(game.win);
+}
+
+function getActiveWinIndex(ordered) {
+  for (let i = 0; i < ordered.length; i++) {
+    if (!isWinFilled(ordered[i])) return i;
+  }
+  return ordered.length > 0 ? ordered.length - 1 : 0;
+}
+
+function getActiveGame() {
+  const ordered = getOrderedGamesForRender();
+  if (!ordered.length) return null;
+  const id = Number(activeGameId);
+  if (Number.isFinite(id)) {
+    const found = ordered.find((g) => Number(g.id) === id);
+    if (found) return found;
+  }
+  const nextId = findNextIncompleteGameId();
+  if (nextId !== null) activeGameId = nextId;
+  return ordered.find((g) => Number(g.id) === Number(activeGameId)) || null;
+}
+
+function computeAllTimeStats() {
+  const archive = loadArchive();
+  const byName = new Map();
+
+  const openingsChrono = [...archive].reverse();
+
+  for (const opening of openingsChrono) {
+    for (const g of opening.games) {
+      const name = normalizeName(g.name);
+      if (!name) continue;
+
+      const bet = Number(g.bet);
+      const win = g.win === null || g.win === undefined ? null : Number(g.win);
+      const x = win === null ? null : win / bet;
+
+      if (!byName.has(name)) {
+        byName.set(name, {
+          name,
+          times: 0,
+          maxBet: 0,
+          maxWin: 0,
+          maxX: 0,
+          bestOpeningNumber: null,
+          totalBet: 0,
+          totalWin: 0,
+          xSum: 0,
+          xCount: 0,
+          xHistory: [],
+        });
+      }
+
+      const s = byName.get(name);
+      s.times += 1;
+
+      if (Number.isFinite(bet)) s.totalBet += bet;
+      if (win !== null && Number.isFinite(win)) s.totalWin += win;
+
+      if (Number.isFinite(bet)) s.maxBet = Math.max(s.maxBet, bet);
+      if (win !== null && Number.isFinite(win))
+        s.maxWin = Math.max(s.maxWin, win);
+
+      if (x !== null && Number.isFinite(x)) {
+        if (x > s.maxX) {
+          s.maxX = x;
+          s.bestOpeningNumber = opening.number;
+        }
+        s.xSum += x;
+        s.xCount += 1;
+        s.xHistory.push(x);
+      }
+    }
+  }
+
+  return Array.from(byName.values()).map((s) => {
+    const cost = s.totalBet * BONUS_COST_X;
+    const profit = s.totalWin - cost;
+    const roi = cost > 0 ? (profit / cost) * 100 : 0;
+
+    const avgX = s.xCount === 0 ? 0 : s.xSum / s.xCount;
+    const last30 = s.xHistory.slice(-30);
+    const last30AvgX = last30.length
+      ? last30.reduce((a, b) => a + b, 0) / last30.length
+      : 0;
+
+    return {
+      ...s,
+      profit,
+      roi,
+      avgX,
+      last30AvgX,
+    };
+  });
+}
+
+function getStatsMap() {
+  const rows = computeAllTimeStats();
+  const m = new Map();
+  for (const r of rows) m.set(r.name.toLowerCase(), r);
+  return m;
+}
+
+function renderActiveGameInfo() {
+  if (
+    !activeGameNameEl ||
+    !activeGameAvgXEl ||
+    !activeGameLast30El ||
+    !activeGameMaxXEl
+  )
+    return;
+
+  if (!openingStarted) {
+    activeGameNameEl.textContent = "-";
+    activeGameAvgXEl.textContent = "-";
+    activeGameLast30El.textContent = "-";
+    activeGameMaxXEl.textContent = "-";
+    return;
+  }
+
+  const g = getActiveGame();
+  if (!g) {
+    activeGameNameEl.textContent = "-";
+    activeGameAvgXEl.textContent = "-";
+    activeGameLast30El.textContent = "-";
+    activeGameMaxXEl.textContent = "-";
+    return;
+  }
+
+  activeGameNameEl.textContent = g.name;
+
+  if (activeGameBetEl) {
+    const betMain = formatMoneyFromARS(Number(g.bet));
+    const betAlt = isFiniteNumber(g.betInput)
+      ? ` (${g.betCurrency} ${Number(g.betInput).toFixed(2)})`
+      : "";
+    activeGameBetEl.textContent = `${betMain}${betAlt}`;
+  }
+
+  if (hudWinInputEl) {
+    const c = g.winCurrency || currentOpeningCurrency || "ARS";
+    hudWinInputEl.placeholder = currencySymbol(c);
+    const v = g.winInput;
+    hudWinInputEl.value =
+      v === null || typeof v === "undefined" ? "" : String(v);
+  }
+
+  const statsMap = getStatsMap();
+  const s = statsMap.get(normalizeName(g.name).toLowerCase());
+
+  if (!s) {
+    activeGameAvgXEl.textContent = "-";
+    activeGameLast30El.textContent = "-";
+    activeGameMaxXEl.textContent = "-";
+    return;
+  }
+
+  activeGameAvgXEl.textContent = `${Number(s.avgX).toFixed(2)}x`;
+  activeGameLast30El.textContent =
+    s.last30AvgX > 0 ? `${Number(s.last30AvgX).toFixed(2)}x` : "-";
+  activeGameMaxXEl.textContent =
+    s.maxX > 0 ? `${Number(s.maxX).toFixed(2)}x` : "-";
+}
+
+function focusInputByGameId(id) {
+  setActiveGameId(id, { focus: true });
+}
+
+function focusActiveWinInput() {
+  focusHudWinInput();
+}
+
+function renderGameList() {
+  if (!gameList) return;
+
+  gameList.innerHTML = "";
+
+  if (currentOpeningGames.length === 0) {
+    const li = document.createElement("li");
+    li.className = "game-item";
+
+    const isActive = openingStarted && Number(activeGameId) === Number(game.id);
+    if (isActive) li.classList.add("game-item--active");
+    li.textContent = "No games added yet.";
+    gameList.appendChild(li);
+    updateFinishButtonState();
+    updateShuffleButtonsState();
+    renderActiveGameInfo();
+    return;
+  }
+
+  const ordered = getOrderedGamesForRender();
+
+  ordered.forEach((game, idx) => {
+    const li = document.createElement("li");
+    li.className = "game-item";
+
+    const xValue = isFiniteNumber(game.win)
+      ? Number(game.win) / Number(game.bet)
+      : null;
+    const xText = xValue === null ? "X: -" : `X: ${xValue.toFixed(2)}`;
+    const xClass = xValue !== null && xValue >= 100 ? "x-good" : "x-bad";
+
+    let tagHtml = "";
+    if (game.isHidden)
+      tagHtml = `<span class="tag-pill tag-hidden">HIDDEN</span>`;
+    else if (game.isSuper)
+      tagHtml = `<span class="tag-pill tag-super">SUPER</span>`;
+
+    const showWin = openingStarted;
+
+    const winDisplay = !isFiniteNumber(game.win)
+      ? "-"
+      : `${formatMoneyFromARS(Number(game.win))}` +
+        (isFiniteNumber(game.winInput)
+          ? ` <span class="muted">(${game.winCurrency || currentOpeningCurrency || "ARS"} ${Number(game.winInput).toFixed(2)})</span>`
+          : "");
+
+    li.innerHTML = `
+      <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start;">
+        <div>
+          <span class="game-num">#${idx + 1}</span>
+          <strong>${game.name}</strong>
+          ${tagHtml}
+          <br />
+          Bet: ${formatMoneyFromARS(Number(game.bet))}${isFiniteNumber(game.betInput) ? ` <span class="muted">(${game.betCurrency} ${Number(game.betInput).toFixed(2)})</span>` : ""}<br />
+          Win: <span class="win-text" data-id="${game.id}">${winDisplay}</span>
+          <span class="x-multiplier ${xClass}" data-id="${game.id}">${xText}</span>
+        </div>
+
+        <button type="button" class="remove-game-btn" data-id="${game.id}">
+          Remove
+        </button>
+      </div>
+    `;
+
+    gameList.appendChild(li);
+  });
+
+  const removeBtns = gameList.querySelectorAll(".remove-game-btn");
+  removeBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = Number(btn.dataset.id);
+      if (!Number.isFinite(id)) return;
+
+      const game = currentOpeningGames.find((g) => Number(g.id) === id);
+      const name = game ? game.name : "this game";
+
+      const ok = confirm(`Remove "${name}" from current opening?`);
+      if (!ok) return;
+
+      currentOpeningGames = currentOpeningGames.filter(
+        (g) => Number(g.id) !== id,
+      );
+      saveCurrentOpening();
+
+      if (openingOrder && openingOrder.length) {
+        openingOrder = openingOrder.filter((x) => Number(x) !== id);
+        saveOpeningState();
+      }
+
+      if (editingGameId === id) editingGameId = null;
+
+      renderGameList();
+      renderNewOpeningCounter();
+      renderNewOpeningSummary();
+      updateStartButtonState();
+      updateFinishButtonState();
+      renderActiveStartingBalance();
+      updateShuffleButtonsState();
+    });
+  });
+
+  const editBtns = gameList.querySelectorAll(".edit-win-btn");
+  editBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (!openingStarted) return;
+      const id = Number(btn.dataset.editId);
+      if (!Number.isFinite(id)) return;
+
+      editingGameId = id;
+      renderGameList();
+      focusInputByGameId(id);
+    });
+  });
+
+  updateFinishButtonState();
+  updateShuffleButtonsState();
+  renderActiveGameInfo();
+}
+
+function renderNewOpeningDefaultsForOrder() {
+  if (!openingOrder || !openingOrder.length) {
+    openingOrder = getDefaultTierOrderedIds();
+    saveOpeningState();
+  }
+}
+
+if (addGameForm) {
+  addGameForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    if (!openingPrepared || openingStarted) return;
+
+    const name = normalizeName(gameNameInput.value);
+    const betInput = Number(betSizeInput.value);
+    const betCurrency =
+      betCurrencySelect && betCurrencySelect.value
+        ? betCurrencySelect.value
+        : currentOpeningCurrency || "ARS";
+
+    if (!name) return;
+    if (!Number.isFinite(betInput) || betInput <= 0) return;
+    if (!isCurrencyReady(betCurrency)) {
+      alert("USD rate is not configured in code yet (FX_RATES.arsPerUSD).");
+      return;
+    }
+
+    const betARS = toARS(betInput, betCurrency);
+    if (betARS === null || betARS <= 0) return;
+
+    const isSuper = !!(isSuperInput && isSuperInput.checked);
+    const isHidden = !!(isHiddenInput && isHiddenInput.checked);
+
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+
+    currentOpeningGames.push({
+      id,
+      name,
+      bet: betARS,
+      betInput: betInput,
+      betCurrency: betCurrency,
+      win: null,
+      winInput: null,
+      winCurrency: betCurrency,
+      isSuper: isHidden ? false : isSuper,
+      isHidden: isHidden,
+    });
+
+    gameNameInput.value = "";
+    betSizeInput.value = "";
+    if (isSuperInput) isSuperInput.checked = false;
+    if (isHiddenInput) isHiddenInput.checked = false;
+    gameNameInput.focus();
+
+    saveCurrentOpening();
+
+    if (openingOrder && openingOrder.length) {
+      openingOrder = [];
+      saveOpeningState();
+    }
+
+    renderNewOpeningCounter();
+    renderNewOpeningSummary();
+    renderActiveStartingBalance();
+    updateStartButtonState();
+    updateShuffleButtonsState();
+    renderGameList();
+  });
+}
+
+if (isHiddenInput && isSuperInput) {
+  isHiddenInput.addEventListener("change", () => {
+    if (isHiddenInput.checked) isSuperInput.checked = false;
+  });
+  isSuperInput.addEventListener("change", () => {
+    if (isSuperInput.checked) isHiddenInput.checked = false;
+  });
+}
+
+if (startNewOpeningBtn) {
+  startNewOpeningBtn.addEventListener("click", () => {
+    if (!isFiniteNumber(currentOpeningStartBalance)) return;
+
+    if (currentOpeningGames.length > 0 || openingStarted || openingPrepared) {
+      const ok = confirm(
+        "Start a new opening setup? This will clear current games and results!",
+      );
+      if (!ok) return;
+    }
+
+    currentOpeningGames = [];
+    saveCurrentOpening();
+
+    openingStarted = false;
+    openingPrepared = true;
+    openingOrder = [];
+    editingGameId = null;
+
+    saveOpeningState();
+    setStartBalanceLocked(false);
+
+    renderPhases();
+    renderGameList();
+    renderNewOpeningCounter();
+    renderNewOpeningSummary();
+    renderActiveStartingBalance();
+    updateStartButtonState();
+    updatePreButtonState();
+    updateFinishButtonState();
+    updateShuffleButtonsState();
+  });
+}
+
+if (startOpeningBtn) {
+  startOpeningBtn.addEventListener("click", () => {
+    if (!openingPrepared) return;
+
+    if (currentOpeningGames.length === 0) {
+      alert("Add at least one game first!");
+      return;
+    }
+
+    if (!isFiniteNumber(currentOpeningStartBalance)) {
+      alert("Set Starting balance first!");
+      return;
+    }
+
+    if (openingStarted) return;
+
+    const baseOrdered =
+      openingOrder && openingOrder.length
+        ? getOrderedGamesForRender()
+        : shuffleByTierKeepOrder(currentOpeningGames);
+
+    openingOrder = baseOrdered.map((g) => g.id);
+
+    openingStarted = true;
+    saveOpeningState();
+    setStartBalanceLocked(true);
+
+    renderPhases();
+    renderGameList();
+    renderActiveStartingBalance();
+    renderNewOpeningSummary();
+    renderActiveStartingBalance();
+    updateStartButtonState();
+    updateFinishButtonState();
+    updateShuffleButtonsState();
+    setActiveGameId(findNextIncompleteGameId(), { focus: true });
+  });
+
+  if (hudWinInputEl) {
+    hudWinInputEl.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+
+      if (!openingStarted) return;
+
+      const g = getActiveGame();
+      if (!g) return;
+
+      const raw = hudWinInputEl.value;
+      const v = raw === "" ? null : Number(raw);
+      if (v !== null && !Number.isFinite(v)) return;
+
+      g.winInput = v === null ? null : v;
+
+      if (g.winInput === null) {
+        g.win = null;
+      } else {
+        const c = g.winCurrency || currentOpeningCurrency || "ARS";
+        if (!isCurrencyReady(c)) {
+          alert("USD rate is not configured in code yet (FX_RATES.arsPerUSD).");
+          return;
+        }
+        const ars = toARS(g.winInput, c);
+        g.win = ars === null ? null : ars;
+      }
+
+      saveCurrentOpening();
+
+      renderNewOpeningSummary();
+      renderActiveStartingBalance();
+      updateFinishButtonState();
+      renderGameList();
+
+      const nextId = findNextIncompleteGameId();
+      if (nextId !== null) setActiveGameId(nextId, { focus: true });
+    });
+  }
+}
+
+if (shuffleAddBtn) {
+  shuffleAddBtn.addEventListener("click", () => {
+    if (!openingPrepared || openingStarted) return;
+    if (currentOpeningGames.length < 2) return;
+
+    const ordered = shuffleByTierKeepOrder(currentOpeningGames);
+    openingOrder = ordered.map((g) => g.id);
+    saveOpeningState();
+
+    renderGameList();
+  });
+}
+
+if (shuffleOpeningBtn) {
+  shuffleOpeningBtn.addEventListener("click", () => {
+    if (!openingStarted) return;
+    if (currentOpeningGames.length < 2) return;
+
+    const ordered = getOrderedGamesForRender();
+    const activeIdx = getActiveWinIndex(ordered);
+
+    const before = ordered.slice(0, activeIdx);
+    const activeAndAfter = ordered.slice(activeIdx);
+
+    const reshuffledRest = shuffleByTierKeepOrder(activeAndAfter);
+    const nextOrder = [...before, ...reshuffledRest];
+
+    openingOrder = nextOrder.map((g) => g.id);
+    saveOpeningState();
+
+    renderGameList();
+    renderNewOpeningSummary();
+    renderActiveStartingBalance();
+    updateFinishButtonState();
+    setActiveGameId(findNextIncompleteGameId(), { focus: true });
+  });
+}
+
+if (cancelOpeningBtn) {
+  cancelOpeningBtn.addEventListener("click", () => {
+    const ok = confirm(
+      "Cancel Opening? This will clear all games and results!",
+    );
+    if (!ok) return;
+
+    currentOpeningGames = [];
+    saveCurrentOpening();
+
+    openingStarted = false;
+    openingPrepared = false;
+    openingOrder = [];
+    editingGameId = null;
+    saveOpeningState();
+
+    currentOpeningStartBalance = null;
+    saveCurrentStartBalance();
+    if (startingBalanceInput) startingBalanceInput.value = "";
+
+    setStartBalanceLocked(false);
+
+    renderPhases();
+    renderGameList();
+    renderNewOpeningCounter();
+    renderNewOpeningSummary();
+    renderActiveStartingBalance();
+    updatePreButtonState();
+    updateStartButtonState();
+    updateFinishButtonState();
+    updateShuffleButtonsState();
+  });
+}
+
+if (finishOpeningBtn) {
+  finishOpeningBtn.addEventListener("click", () => {
+    if (!openingStarted) return;
+    if (!isAllWinsFilled()) return;
+    openFinishModal();
+  });
+}
+
+if (finishModal) {
+  finishModal.addEventListener("click", (e) => {
+    if (e.target && e.target.dataset && e.target.dataset.close === "1")
+      closeFinishModal();
+  });
+}
+
+if (finishModalClose)
+  finishModalClose.addEventListener("click", closeFinishModal);
+if (finishModalCancel)
+  finishModalCancel.addEventListener("click", closeFinishModal);
+
+function loadArchive() {
+  const raw = localStorage.getItem(ARCHIVE_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    const archive = Array.isArray(parsed) ? parsed : [];
+    return archive.filter(
+      (o) => o && Array.isArray(o.games) && o.games.length > 0,
+    );
+  } catch {
+    return [];
+  }
+}
+
+function saveArchive(archive) {
+  localStorage.setItem(ARCHIVE_KEY, JSON.stringify(archive));
+}
+
+function getNextArchiveNumber() {
+  const raw = localStorage.getItem(ARCHIVE_LAST_NUMBER_KEY);
+  const last = raw ? Number(raw) : 0;
+  const next = Number.isFinite(last) ? last + 1 : 1;
+  localStorage.setItem(ARCHIVE_LAST_NUMBER_KEY, String(next));
+  return next;
+}
+
+function computeOpeningTotals(opening) {
+  const games = opening && Array.isArray(opening.games) ? opening.games : [];
+
+  let totalBet = 0;
+  let totalWin = 0;
+  let count100x = 0;
+
+  for (const g of games) {
+    const bet = Number(g.bet);
+    const win = g.win === null || g.win === undefined ? null : Number(g.win);
+
+    if (Number.isFinite(bet)) totalBet += bet;
+    if (win !== null && Number.isFinite(win)) totalWin += win;
+
+    if (
+      win !== null &&
+      Number.isFinite(win) &&
+      Number.isFinite(bet) &&
+      bet > 0
+    ) {
+      const x = win / bet;
+      if (x >= 100) count100x += 1;
+    }
+  }
+
+  const totalCost = totalBet * BONUS_COST_X;
+
+  const done = games.filter(
+    (g) =>
+      g.win !== null &&
+      g.win !== undefined &&
+      Number.isFinite(Number(g.win)) &&
+      Number.isFinite(Number(g.bet)) &&
+      Number(g.bet) > 0,
+  );
+
+  const sumBetDone = done.reduce((s, g) => s + Number(g.bet), 0);
+  const sumWinDone = done.reduce((s, g) => s + Number(g.win), 0);
+  const avgXKnown = sumBetDone > 0 ? sumWinDone / sumBetDone : null;
+
+  const startBalance =
+    opening &&
+    opening.startBalance !== null &&
+    opening.startBalance !== undefined &&
+    Number.isFinite(Number(opening.startBalance))
+      ? Number(opening.startBalance)
+      : null;
+
+  const endBalanceAuto = sumWins(games);
+
+  const profit = startBalance === null ? 0 : endBalanceAuto - startBalance;
+  const roi =
+    startBalance !== null && startBalance > 0
+      ? (profit / startBalance) * 100
+      : 0;
+
+  return {
+    totalBet,
+    totalCost,
+    totalWin,
+    profit,
+    roi,
+    count100x,
+    avgXKnown,
+    startBalance,
+    endBalanceAuto,
+  };
+}
+
+function openFinishModal() {
+  if (!finishModal) return;
+
+  const ordered = getOrderedGamesForRender();
+  const t = computeOpeningTotals({ games: ordered });
+
+  const superCount = ordered.filter((g) => g.isSuper && !g.isHidden).length;
+  const hiddenCount = ordered.filter((g) => g.isHidden).length;
+
+  finishSumGames.textContent = String(ordered.length);
+  finishSumSuper.textContent = String(superCount);
+  if (finishSumHidden) finishSumHidden.textContent = String(hiddenCount);
+
+  finishSumBet.textContent =
+    currentOpeningStartBalance === null
+      ? "-"
+      : formatMoneyFromARS(Number(currentOpeningStartBalance));
+
+  finishSumWin.textContent = formatMoneyFromARS(t.totalWin);
+
+  const sb = currentOpeningStartBalance;
+  const profit = isFiniteNumber(sb) ? t.totalWin - Number(sb) : 0;
+
+  const roi =
+    isFiniteNumber(sb) && Number(sb) > 0 ? (profit / Number(sb)) * 100 : 0;
+
+  finishSumProfit.textContent = formatMoneyFromARS(profit);
+  finishSumProfit.style.color = profit >= 0 ? "green" : "red";
+  finishSumRoi.textContent = `${roi.toFixed(1)}%`;
+
+  finishSumRows.innerHTML = ordered
+    .map((g, i) => {
+      const win = g.win === null || g.win === undefined ? null : Number(g.win);
+      const bet = Number(g.bet);
+      const x = win === null ? null : win / bet;
+
+      const winText = win === null ? "-" : win.toFixed(2);
+      const xText = x === null ? "-" : x.toFixed(2);
+
+      const tag = g.isHidden ? "HIDDEN" : g.isSuper ? "SUPER" : "";
+
+      return `<tr>
+        <td>${i + 1}</td>
+        <td>${String(g.name)}</td>
+        <td>${formatMoneyFromARS(bet)}</td>
+        <td>${winText === "-" ? "-" : formatMoneyFromARS(win)}</td>
+        <td>${xText}x</td>
+        <td>${tag}</td>
+      </tr>`;
+    })
+    .join("");
+
+  finishModal.hidden = false;
+}
+
+function closeFinishModal() {
+  if (!finishModal) return;
+  finishModal.hidden = true;
+}
+
+if (finishModalSave) {
+  finishModalSave.addEventListener("click", () => {
+    const archive = loadArchive();
+    const number = getNextArchiveNumber();
+
+    const snapshotGames = getOrderedGamesForRender().map((g) => ({ ...g }));
+
+    archive.unshift({
+      number,
+      createdAt: new Date().toISOString(),
+      startBalance: currentOpeningStartBalance,
+      games: snapshotGames,
+    });
+
+    saveArchive(archive);
+
+    currentOpeningGames = [];
+    saveCurrentOpening();
+
+    openingStarted = false;
+    openingPrepared = false;
+    openingOrder = [];
+    editingGameId = null;
+    saveOpeningState();
+    setStartBalanceLocked(false);
+
+    currentOpeningStartBalance = null;
+    saveCurrentStartBalance();
+    if (startingBalanceInput) startingBalanceInput.value = "";
+
+    renderPhases();
+    renderGameList();
+    renderArchiveList();
+    renderStats();
+    renderOverallTotals();
+    renderNewOpeningCounter();
+    renderNewOpeningSummary();
+    renderActiveStartingBalance();
+    updatePreButtonState();
+    updateStartButtonState();
+    updateFinishButtonState();
+    updateShuffleButtonsState();
+
+    closeFinishModal();
+    alert(`Saved to Archive as #${number}`);
+  });
+}
+
+function renderArchiveList() {
+  if (!archiveList) return;
+  updateArchiveFilterUI();
+
+  const archive = loadArchive();
+  archiveList.innerHTML = "";
+
+  let filtered = archiveFilterName
+    ? archive.filter((o) =>
+        o.games.some(
+          (g) => normalizeName(g.name).toLowerCase() === archiveFilterName,
+        ),
+      )
+    : archive;
+
+  if (archiveTagFilter === "super") {
+    filtered = filtered.filter((o) =>
+      o.games.some((g) => g.isSuper && !g.isHidden),
+    );
+  } else if (archiveTagFilter === "hidden") {
+    filtered = filtered.filter((o) => o.games.some((g) => g.isHidden));
+  }
+
+  if (archiveOnly100x) {
+    filtered = filtered.filter((o) => {
+      const t = computeOpeningTotals(o);
+      return t.count100x > 0;
+    });
+  }
+
+  const q = String(archiveSearchQuery || "")
+    .trim()
+    .toLowerCase();
+  if (q) {
+    filtered = filtered.filter((o) => {
+      const numMatch = String(o.number || "").includes(q);
+      const gameMatch = (o.games || []).some((g) =>
+        normalizeName(g.name).toLowerCase().includes(q),
+      );
+      return numMatch || gameMatch;
+    });
+  }
+
+  filtered = filtered.slice();
+  filtered.sort((a, b) => {
+    if (archiveSortKey === "oldest") return Number(a.number) - Number(b.number);
+    if (archiveSortKey === "profit")
+      return computeOpeningTotals(b).profit - computeOpeningTotals(a).profit;
+    if (archiveSortKey === "roi")
+      return computeOpeningTotals(b).roi - computeOpeningTotals(a).roi;
+    if (archiveSortKey === "end")
+      return (
+        computeOpeningTotals(b).endBalanceAuto -
+        computeOpeningTotals(a).endBalanceAuto
+      );
+    if (archiveSortKey === "avgX") {
+      const aa = computeOpeningTotals(a).avgXKnown;
+      const bb = computeOpeningTotals(b).avgXKnown;
+      return (bb ?? -Infinity) - (aa ?? -Infinity);
+    }
+    if (archiveSortKey === "count100x")
+      return (
+        computeOpeningTotals(b).count100x - computeOpeningTotals(a).count100x
+      );
+
+    return Number(b.number) - Number(a.number);
+  });
+
+  if (filtered.length === 0) {
+    const li = document.createElement("li");
+    li.className = "archive-item";
+    li.textContent = archiveFilterName
+      ? `No archived openings for "${archiveFilterName}".`
+      : "No archived openings yet.";
+    archiveList.appendChild(li);
+    return;
+  }
+
+  filtered.forEach((opening) => {
+    const totalGames = opening.games.length;
+    const superCount = opening.games.filter(
+      (g) => g.isSuper && !g.isHidden,
+    ).length;
+    const hiddenCount = opening.games.filter((g) => g.isHidden).length;
+    const t = computeOpeningTotals(opening);
+
+    const startText =
+      opening.startBalance === null || opening.startBalance === undefined
+        ? "-"
+        : formatMoneyFromARS(Number(opening.startBalance));
+
+    const avgXText = t.avgXKnown === null ? "-" : `${t.avgXKnown.toFixed(2)}x`;
+    const endText = formatMoneyFromARS(t.endBalanceAuto);
+
+    const li = document.createElement("li");
+    li.className = "archive-item";
+
+    const badge =
+      t.count100x > 0
+        ? ` <span class="badge-100x-inline">🔥 ${t.count100x}x 100x+</span>`
+        : "";
+
+    li.innerHTML = `
+      <strong>#${opening.number}</strong>${badge}<br />
+      Start: ${startText} | AvgX: ${avgXText} | End: ${endText}<br />
+      Games: ${totalGames} | SUPER: ${superCount} | HIDDEN: ${hiddenCount}<br />
+      Profit: ${formatMoneyFromARS(t.profit)} | ROI: ${t.roi.toFixed(1)}%
+    `;
+
+    li.style.cursor = "pointer";
+    li.addEventListener("click", () => {
+      renderArchiveDetail(opening);
+    });
+
+    archiveList.appendChild(li);
+  });
+}
+
+function updateArchiveFilterUI() {
+  if (!clearArchiveFilterBtn) return;
+  const any =
+    !!archiveFilterName ||
+    archiveSortKey !== "newest" ||
+    archiveTagFilter !== "all" ||
+    !!archiveOnly100x ||
+    !!String(archiveSearchQuery || "").trim();
+  clearArchiveFilterBtn.hidden = !any;
+}
+
+if (clearArchiveFilterBtn) {
+  clearArchiveFilterBtn.addEventListener("click", () => {
+    archiveFilterName = null;
+    archiveSortKey = "newest";
+    archiveTagFilter = "all";
+    archiveOnly100x = false;
+    archiveSearchQuery = "";
+    saveArchiveUI();
+
+    if (archiveSortSelect) archiveSortSelect.value = archiveSortKey;
+    if (archiveTagSelect) archiveTagSelect.value = archiveTagFilter;
+    if (archiveOnly100xInput) archiveOnly100xInput.checked = false;
+    if (archiveSearchInput) archiveSearchInput.value = "";
+
+    renderArchiveDetail(null);
+    renderArchiveList();
+    updateArchiveFilterUI();
+  });
+}
+
+function formatX(game) {
+  if (game.win === null || game.win === undefined) return null;
+  return Number(game.win) / Number(game.bet);
+}
+
+function renderArchiveDetail(opening) {
+  if (!archiveDetail) return;
+
+  if (!opening) {
+    archiveDetail.hidden = true;
+    archiveDetail.innerHTML = "";
+    return;
+  }
+
+  let dirty = false;
+
+  const t = computeOpeningTotals(opening);
+
+  const startVal = opening.startBalance ?? "";
+  const endText = formatMoneyFromARS(Number(t.endBalanceAuto));
+  const avgXText = t.avgXKnown === null ? "-" : `${t.avgXKnown.toFixed(2)}x`;
+
+  const rows = opening.games
+    .map((g) => {
+      const x = formatX(g);
+      const xText = x === null ? "-" : x.toFixed(2);
+      const tag = g.isHidden ? "HIDDEN" : g.isSuper ? "SUPER" : "";
+
+      const bet = Number(g.bet);
+      const win = g.win === null || g.win === undefined ? null : Number(g.win);
+      const is100x =
+        win !== null &&
+        Number.isFinite(win) &&
+        Number.isFinite(bet) &&
+        bet > 0 &&
+        win / bet >= 100;
+
+      return `<tr data-game-id="${g.id}">
+        <td><input type="text" class="archive-name-input" value="${g.name}" /></td>
+        <td><input type="number" class="archive-bet-input" value="${g.bet}" step="0.01" /></td>
+        <td><input type="number" class="archive-win-input" value="${g.win ?? ""}" step="0.01" /></td>
+        <td class="archive-x-cell">${xText}x ${is100x ? `<span class="badge-100x-inline">🔥 100x+</span>` : ""}</td>
+        <td>${tag}</td>
+        <td>
+          <button type="button" class="archive-remove-game-btn" data-game-id="${g.id}">Remove</button>
+        </td>
+      </tr>`;
+    })
+    .join("");
+
+  archiveDetail.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px; flex-wrap:wrap;">
+      <div>
+        <strong>Opening #${opening.number}</strong><br />
+
+        <div style="margin-top:8px; display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+          <label>
+            Start (ARS)
+            <input id="archive-start-balance" type="number" step="0.01" value="${startVal}">
+          </label>
+
+          <div style="min-width:180px;">
+            <div style="color:rgba(255,255,255,0.65); font-size:12px; margin-bottom:6px;">End</div>
+            <div id="archive-end-balance" style="font-weight:800;">${endText}</div>
+          </div>
+        </div>
+
+        <div style="margin-top:8px;">
+          AvgX: <span id="archive-avgx-known">${avgXText}</span><br />
+          Total win: <span id="archive-total-win">${formatMoneyFromARS(t.totalWin)}</span><br />
+          Profit: <span id="archive-profit">${formatMoneyFromARS(t.profit)}</span> | ROI: <span id="archive-roi">${t.roi.toFixed(1)}%</span>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <button id="save-opening-btn" type="button" disabled>Save</button>
+        <span id="save-hint" style="color:rgba(255,255,255,0.65); font-size:12px;"></span>
+        <button id="delete-opening-btn" type="button">Delete</button>
+        <button id="close-archive-detail-btn" type="button">Close</button>
+      </div>
+    </div>
+
+    <div style="margin-top:12px; overflow:auto;">
+      <table style="width:100%; border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th style="text-align:left; border-bottom:1px solid rgba(255,255,255,0.12); padding:8px;">Game</th>
+            <th style="text-align:left; border-bottom:1px solid rgba(255,255,255,0.12); padding:8px;">Bet</th>
+            <th style="text-align:left; border-bottom:1px solid rgba(255,255,255,0.12); padding:8px;">Win</th>
+            <th style="text-align:left; border-bottom:1px solid rgba(255,255,255,0.12); padding:8px;">X</th>
+            <th style="text-align:left; border-bottom:1px solid rgba(255,255,255,0.12); padding:8px;">Tag</th>
+            <th style="text-align:left; border-bottom:1px solid rgba(255,255,255,0.12); padding:8px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+
+  archiveDetail.hidden = false;
+
+  const saveBtn = document.getElementById("save-opening-btn");
+  const saveHint = document.getElementById("save-hint");
+
+  function setDirty(v) {
+    dirty = v;
+    if (saveBtn) saveBtn.disabled = !dirty;
+    if (saveHint) saveHint.textContent = dirty ? "Unsaved changes" : "";
+  }
+
+  function refreshDetailMetrics() {
+    const tt = computeOpeningTotals(opening);
+
+    const endEl = document.getElementById("archive-end-balance");
+    if (endEl)
+      endEl.textContent = formatMoneyFromARS(Number(tt.endBalanceAuto));
+
+    const avgEl = document.getElementById("archive-avgx-known");
+    if (avgEl)
+      avgEl.textContent =
+        tt.avgXKnown === null ? "-" : `${tt.avgXKnown.toFixed(2)}x`;
+
+    const winEl = document.getElementById("archive-total-win");
+    if (winEl) winEl.textContent = tt.totalWin.toFixed(2);
+
+    const profitEl = document.getElementById("archive-profit");
+    if (profitEl) profitEl.textContent = tt.profit.toFixed(2);
+
+    const roiEl = document.getElementById("archive-roi");
+    if (roiEl) roiEl.textContent = `${tt.roi.toFixed(1)}%`;
+  }
+
+  function saveArchiveEdit() {
+    const archive = loadArchive();
+    const idx = archive.findIndex((o) => o.number === opening.number);
+    if (idx === -1) return;
+
+    archive[idx] = opening;
+    saveArchive(archive);
+
+    renderArchiveList();
+    renderStats();
+    renderOverallTotals();
+  }
+
+  setDirty(false);
+
+  if (saveBtn) {
+    saveBtn.addEventListener("click", () => {
+      saveArchiveEdit();
+      setDirty(false);
+      if (saveHint) saveHint.textContent = "Saved ✅";
+      setTimeout(() => {
+        if (saveHint && !dirty) saveHint.textContent = "";
+      }, 1200);
+    });
+  }
+
+  const startInput = document.getElementById("archive-start-balance");
+  if (startInput) {
+    startInput.addEventListener("input", () => {
+      const v = startInput.value === "" ? null : Number(startInput.value);
+      opening.startBalance = Number.isFinite(v) ? v : null;
+      setDirty(true);
+      refreshDetailMetrics();
+    });
+  }
+
+  const betInputs = archiveDetail.querySelectorAll(".archive-bet-input");
+  const winInputs = archiveDetail.querySelectorAll(".archive-win-input");
+  const nameInputs = archiveDetail.querySelectorAll(".archive-name-input");
+
+  betInputs.forEach((input) => {
+    input.addEventListener("input", () => {
+      const row = input.closest("tr");
+      const gameId = Number(row.dataset.gameId);
+      const game = opening.games.find((g) => Number(g.id) === gameId);
+      if (!game) return;
+
+      const bet = Number(input.value);
+      if (!Number.isFinite(bet) || bet <= 0) return;
+
+      game.bet = bet;
+      setDirty(true);
+      refreshDetailMetrics();
+    });
+  });
+
+  winInputs.forEach((input) => {
+    input.addEventListener("input", () => {
+      const row = input.closest("tr");
+      const gameId = Number(row.dataset.gameId);
+      const game = opening.games.find((g) => Number(g.id) === gameId);
+      if (!game) return;
+
+      const win = input.value === "" ? null : Number(input.value);
+      if (win !== null && !Number.isFinite(win)) return;
+
+      game.win = win;
+      setDirty(true);
+      refreshDetailMetrics();
+    });
+  });
+
+  nameInputs.forEach((input) => {
+    input.addEventListener("input", () => {
+      const row = input.closest("tr");
+      const gameId = Number(row.dataset.gameId);
+      const game = opening.games.find((g) => Number(g.id) === gameId);
+      if (!game) return;
+
+      const newName = normalizeName(input.value);
+      if (!newName) return;
+      game.name = newName;
+      setDirty(true);
+    });
+  });
+
+  const removeBtns = archiveDetail.querySelectorAll(".archive-remove-game-btn");
+  removeBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const gameId = Number(btn.dataset.gameId);
+      if (!Number.isFinite(gameId)) return;
+
+      const game = opening.games.find((g) => Number(g.id) === gameId);
+      const gameName = game ? game.name : "this game";
+
+      const ok = confirm(
+        `Remove "${gameName}" from Opening #${opening.number}?`,
+      );
+      if (!ok) return;
+
+      opening.games = opening.games.filter((g) => Number(g.id) !== gameId);
+
+      if (opening.games.length === 0) {
+        const ok2 = confirm(
+          `Opening #${opening.number} is now empty. Delete the whole opening?`,
+        );
+        const archive = loadArchive();
+
+        if (ok2) {
+          const next = archive.filter((o) => o.number !== opening.number);
+          saveArchive(next);
+          renderArchiveDetail(null);
+          renderArchiveList();
+          renderStats();
+          renderOverallTotals();
+          return;
+        }
+      }
+
+      setDirty(true);
+      renderArchiveDetail(opening);
+    });
+  });
+
+  const closeBtn = document.getElementById("close-archive-detail-btn");
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      if (dirty) {
+        const ok = confirm("You have unsaved changes. Close anyway?");
+        if (!ok) return;
+      }
+      renderArchiveDetail(null);
+    });
+  }
+
+  const deleteBtn = document.getElementById("delete-opening-btn");
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", () => {
+      const ok = confirm(
+        `Delete Opening #${opening.number}? This cannot be undone!`,
+      );
+      if (!ok) return;
+
+      const archive = loadArchive();
+      const next = archive.filter((o) => o.number !== opening.number);
+      saveArchive(next);
+
+      renderArchiveDetail(null);
+      renderArchiveList();
+      renderStats();
+      renderOverallTotals();
+
+      alert(`Deleted Opening #${opening.number}`);
+    });
+  }
+}
+
+function sortStats(rows, sortKey) {
+  const r = [...rows];
+
+  if (sortKey === "name") {
+    r.sort((a, b) => a.name.localeCompare(b.name));
+    return r;
+  }
+
+  const keyMap = {
+    times: "times",
+    maxWin: "maxWin",
+    maxX: "maxX",
+    avgX: "avgX",
+    last30AvgX: "last30AvgX",
+    maxBet: "maxBet",
+    profit: "profit",
+    roi: "roi",
+  };
+
+  const k = keyMap[sortKey] || "times";
+  r.sort((a, b) => (b[k] ?? 0) - (a[k] ?? 0));
+  return r;
+}
+
+function renderStats() {
+  if (!statsTbody) return;
+
+  const sortKey = statsSortSelect ? statsSortSelect.value : "times";
+  const query = statsSearchInput
+    ? statsSearchInput.value.trim().toLowerCase()
+    : "";
+
+  let data = computeAllTimeStats();
+  if (query) data = data.filter((s) => s.name.toLowerCase().includes(query));
+
+  const rows = sortStats(data, sortKey);
+  statsTbody.innerHTML = "";
+
+  if (rows.length === 0) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="9">No data yet.</td>`;
+    statsTbody.appendChild(tr);
+    return;
+  }
+
+  for (const s of rows) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>
+        <button type="button" class="stats-game-link" data-name="${s.name}">${s.name}</button>
+        ${s.maxX >= 100 ? `<span class="badge-100x">🔥 100x+</span>` : ``}
+      </td>
+      <td>${s.times}</td>
+      <td>${s.maxBet.toFixed(2)}</td>
+      <td>${s.maxWin.toFixed(2)}</td>
+      <td>
+        ${s.maxX.toFixed(2)}x
+        ${s.bestOpeningNumber !== null ? `(<button class="stats-opening-link" data-opening="${s.bestOpeningNumber}">#${s.bestOpeningNumber}</button>)` : ""}
+      </td>
+      <td>${s.avgX.toFixed(2)}x</td>
+      <td>${s.last30AvgX > 0 ? s.last30AvgX.toFixed(2) + "x" : "-"}</td>
+      <td style="color:${s.profit >= 0 ? "green" : "red"}">${formatMoneyFromARS(s.profit)}</td>
+      <td>${s.roi.toFixed(1)}%</td>
+    `;
+    statsTbody.appendChild(tr);
+  }
+
+  const openingLinks = statsTbody.querySelectorAll(".stats-opening-link");
+  openingLinks.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const number = Number(btn.dataset.opening);
+      if (!Number.isFinite(number)) return;
+
+      const archive = loadArchive();
+      const opening = archive.find((o) => o.number === number);
+      if (!opening) return;
+
+      archiveFilterName = null;
+      renderArchiveDetail(null);
+      renderArchiveList();
+      updateArchiveFilterUI();
+      showView("archive");
+      renderArchiveDetail(opening);
+    });
+  });
+
+  const gameLinks = statsTbody.querySelectorAll(".stats-game-link");
+  gameLinks.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const name = normalizeName(btn.dataset.name).toLowerCase();
+      if (!name) return;
+
+      archiveFilterName = name;
+      renderArchiveDetail(null);
+      renderArchiveList();
+      updateArchiveFilterUI();
+      showView("archive");
+    });
+  });
+}
+
+if (statsSortSelect) statsSortSelect.addEventListener("change", renderStats);
+if (statsSearchInput) statsSearchInput.addEventListener("input", renderStats);
+
+function computeOverallTotals() {
+  const archive = loadArchive();
+
+  let startSum = 0;
+  let totalWin = 0;
+
+  for (const opening of archive) {
+    const sb = opening.startBalance;
+    if (isFiniteNumber(sb)) startSum += Number(sb);
+
+    for (const g of opening.games) {
+      const win = g.win === null || g.win === undefined ? null : Number(g.win);
+      if (win !== null && Number.isFinite(win)) totalWin += win;
+    }
+  }
+
+  const profit = totalWin - startSum;
+  const roi = startSum > 0 ? (profit / startSum) * 100 : 0;
+
+  return { startSum, totalWin, profit, roi };
+}
+
+function renderOverallTotals() {
+  if (!totalsBetEl || !totalsWinEl || !totalsProfitEl || !totalsRoiEl) return;
+
+  const t = computeOverallTotals();
+
+  totalsBetEl.textContent = formatMoneyFromARS(t.startSum);
+  totalsWinEl.textContent = formatMoneyFromARS(t.totalWin);
+
+  totalsProfitEl.textContent = formatMoneyFromARS(t.profit);
+  totalsProfitEl.style.color = t.profit >= 0 ? "green" : "red";
+
+  totalsRoiEl.textContent = `${t.roi.toFixed(1)}%`;
+}
+
+function buildBackupPayload() {
+  return {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    currentOpeningGames,
+    currentOpeningStartBalance,
+    currentOpeningStartBalanceInput,
+    currentOpeningCurrency,
+    openingStarted,
+    openingPrepared,
+    openingOrder,
+    archive: loadArchive(),
+    archiveLastNumber: localStorage.getItem(ARCHIVE_LAST_NUMBER_KEY) || "0",
+  };
+}
+
+function downloadJson(filename, dataObj) {
+  const json = JSON.stringify(dataObj, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  URL.revokeObjectURL(url);
+}
+
+if (exportBtn) {
+  exportBtn.addEventListener("click", () => {
+    const payload = buildBackupPayload();
+    const date = new Date().toISOString().slice(0, 10);
+    downloadJson(`bonus-opening-backup-${date}.json`, payload);
+  });
+}
+
+function isValidBackup(obj) {
+  if (!obj || typeof obj !== "object") return false;
+  if (obj.version !== 1) return false;
+  if (!Array.isArray(obj.archive)) return false;
+  if (!Array.isArray(obj.currentOpeningGames)) return false;
+  return true;
+}
+
+function applyBackup(obj) {
+  saveArchive(obj.archive);
+
+  localStorage.setItem(
+    ARCHIVE_LAST_NUMBER_KEY,
+    String(obj.archiveLastNumber ?? "0"),
+  );
+
+  currentOpeningGames = obj.currentOpeningGames || [];
+  saveCurrentOpening();
+
+  currentOpeningCurrency = obj.currentOpeningCurrency || "ARS";
+
+  currentOpeningStartBalanceInput = isFiniteNumber(
+    obj.currentOpeningStartBalanceInput,
+  )
+    ? Number(obj.currentOpeningStartBalanceInput)
+    : null;
+
+  currentOpeningStartBalance = isFiniteNumber(obj.currentOpeningStartBalance)
+    ? Number(obj.currentOpeningStartBalance)
+    : null;
+
+  saveCurrentStartBalance();
+
+  if (openingCurrencySelect)
+    openingCurrencySelect.value = currentOpeningCurrency || "ARS";
+  if (betCurrencySelect)
+    betCurrencySelect.value = currentOpeningCurrency || "ARS";
+
+  if (startingBalanceInput)
+    startingBalanceInput.value =
+      currentOpeningStartBalanceInput === null
+        ? ""
+        : String(currentOpeningStartBalanceInput);
+
+  openingStarted = obj.openingStarted === true;
+  openingPrepared = obj.openingPrepared === true;
+  openingOrder = Array.isArray(obj.openingOrder) ? obj.openingOrder : [];
+  saveOpeningState();
+
+  setStartBalanceLocked(openingStarted);
+
+  renderPhases();
+  renderGameList();
+  renderArchiveList();
+  renderStats();
+  renderOverallTotals();
+  renderNewOpeningCounter();
+  renderNewOpeningSummary();
+  renderActiveStartingBalance();
+
+  updatePreButtonState();
+  updateStartButtonState();
+  updateFinishButtonState();
+  updateShuffleButtonsState();
+}
+
+if (importBtn && importInput) {
+  importBtn.addEventListener("click", () => {
+    importInput.value = "";
+    importInput.click();
+  });
+
+  importInput.addEventListener("change", async () => {
+    const file = importInput.files && importInput.files[0];
+    if (!file) return;
+
+    const ok = confirm(
+      "Importing a backup will REPLACE your current data. Continue?",
+    );
+    if (!ok) return;
+
+    try {
+      const text = await file.text();
+      const obj = JSON.parse(text);
+
+      if (!isValidBackup(obj)) {
+        alert("Invalid backup file.");
+        return;
+      }
+
+      applyBackup(obj);
+      alert("Backup imported successfully!");
+    } catch {
+      alert("Failed to import backup. File might be corrupted.");
+    }
+  });
+}
+
+loadCurrentOpening();
+loadCurrentStartBalance();
+loadOpeningState();
+
+loadFx();
+initFxUI();
+
+loadArchiveUI();
+initArchiveUI();
+
+setStartBalanceLocked(openingStarted);
+
+if (openingCurrencySelect)
+  openingCurrencySelect.value = currentOpeningCurrency || "ARS";
+if (betCurrencySelect)
+  betCurrencySelect.value = currentOpeningCurrency || "ARS";
+
+if (startingBalanceInput && currentOpeningStartBalanceInput !== null) {
+  startingBalanceInput.value = String(currentOpeningStartBalanceInput);
+}
+
+renderPhases();
+renderGameList();
+renderArchiveList();
+renderStats();
+renderOverallTotals();
+renderNewOpeningCounter();
+renderNewOpeningSummary();
+renderActiveStartingBalance();
+
+updatePreButtonState();
+updateStartButtonState();
+updateFinishButtonState();
+updateShuffleButtonsState();
+
+(function () {
+  const themeBtn = document.getElementById("theme-toggle");
+  const KEY = "bt_theme";
+
+  try {
+    const saved = localStorage.getItem(KEY);
+    if (saved === "light") document.body.classList.add("light-mode");
+  } catch {}
+
+  function setTheme(mode) {
+    const isLight = mode === "light";
+    document.body.classList.toggle("light-mode", isLight);
+    try {
+      localStorage.setItem(KEY, isLight ? "light" : "dark");
+    } catch {}
+  }
+
+  if (themeBtn) {
+    themeBtn.addEventListener("click", () => {
+      const isLight = document.body.classList.contains("light-mode");
+      setTheme(isLight ? "dark" : "light");
+    });
+  }
+
+  document.addEventListener("keydown", (e) => {
+    const tag =
+      e.target && e.target.tagName ? e.target.tagName.toLowerCase() : "";
+    const typing =
+      tag === "input" ||
+      tag === "textarea" ||
+      (e.target && e.target.isContentEditable);
+
+    const finishModal = document.getElementById("finish-modal");
+    const hud = document.getElementById("hud-win-input");
+    const phasePlay = document.getElementById("new-phase-play");
+    const isPlayVisible = phasePlay && !phasePlay.hasAttribute("hidden");
+
+    if (e.key === "Escape") {
+      if (finishModal && !finishModal.hasAttribute("hidden")) {
+        const close = document.getElementById("finish-modal-close");
+        if (close) close.click();
+        return;
+      }
+      if (isPlayVisible && hud) {
+        hud.focus();
+        hud.select?.();
+      }
+      return;
+    }
+
+    if (!typing && e.key === "/") {
+      const statsView = document.getElementById("view-stats");
+      const archiveView = document.getElementById("view-archive");
+      const statsVisible = statsView && !statsView.hasAttribute("hidden");
+      const archiveVisible = archiveView && !archiveView.hasAttribute("hidden");
+      const el = statsVisible
+        ? document.getElementById("stats-search")
+        : archiveVisible
+          ? document.getElementById("archive-search")
+          : null;
+      if (el) {
+        e.preventDefault();
+        el.focus();
+        el.select?.();
+      }
+      return;
+    }
+
+    if (!isPlayVisible) return;
+
+    if (typing) return;
+
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      if (typeof getOrderedGamesForRender !== "function") return;
+      const ordered = getOrderedGamesForRender();
+      if (!ordered || ordered.length === 0) return;
+
+      const currentId =
+        typeof activeGameId !== "undefined" ? Number(activeGameId) : null;
+      const idx = ordered.findIndex((g) => Number(g.id) === currentId);
+      const nextIndex =
+        e.key === "ArrowDown"
+          ? idx >= 0
+            ? (idx + 1) % ordered.length
+            : 0
+          : idx >= 0
+            ? (idx - 1 + ordered.length) % ordered.length
+            : ordered.length - 1;
+
+      const next = ordered[nextIndex];
+      if (next && typeof setActiveGameId === "function")
+        setActiveGameId(Number(next.id), { focus: true });
+    }
+  });
+})();
+
+let profitChart;
+
+function renderProfitChart() {
+  const archive = loadArchive();
+  if (!archive || archive.length === 0) return;
+
+  const labels = [];
+  const profits = [];
+
+  archive.forEach((opening) => {
+    let totalWin = 0;
+
+    for (const g of opening.games) {
+      if (g.win !== null && g.win !== undefined) {
+        totalWin += Number(g.win);
+      }
+    }
+
+    const start = Number(opening.startBalance || 0);
+    const profitARS = totalWin - start;
+    const profitDisplay = fromARS(profitARS, fx.display);
+
+    labels.push("Opening #" + opening.number);
+    profits.push(profitDisplay);
+  });
+
+  const canvas = document.getElementById("profitChart");
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+
+  if (profitChart) {
+    profitChart.destroy();
+  }
+
+  profitChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Profit (" + fx.display + ")",
+          data: profits,
+
+          borderRadius: 8,
+          borderSkipped: false,
+
+          backgroundColor: profits.map((v) =>
+            v >= 0 ? "rgba(80,220,120,0.7)" : "rgba(255,80,80,0.7)",
+          ),
+
+          borderColor: profits.map((v) =>
+            v >= 0 ? "rgba(80,220,120,1)" : "rgba(255,80,80,1)",
+          ),
+
+          borderWidth: 2,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+
+      animation: {
+        duration: 900,
+        easing: "easeOutQuart",
+      },
+
+      plugins: {
+        legend: {
+          labels: {
+            color: "#fff",
+            boxWidth: 0,
+            boxHeight: 0,
+          },
+        },
+      },
+
+      scales: {
+        x: {
+          ticks: { color: "#fff" },
+          grid: {
+            color: "rgba(255,255,255,0.05)",
+          },
+        },
+        y: {
+          ticks: { color: "#fff" },
+          grid: {
+            color: "rgba(255,255,255,0.05)",
+          },
+        },
+      },
+    },
+  });
+}
+
+const analyticsView = document.getElementById("view-analytics");
+
+if (analyticsView) {
+  const observer = new MutationObserver(() => {
+    if (!analyticsView.hidden) {
+      renderProfitChart();
+      renderAnalyticsCards();
+      renderBiggestWins();
+      renderGameRTP();
+      renderHotColdGames();
+      renderLuckMeter();
+      renderMostPlayedGames();
+      renderWorstROIGames();
+      renderGameProfitChart();
+      renderBankrollChart();
+      renderHitStats();
+      renderWinDistributionChart();
+      renderMedianX();
+      renderHighestX();
+      renderBestOpening();
+      renderGameHeatmap();
+      renderBestGameEver();
+      renderWorstGameEver();
+      renderGamePerformance();
+    }
+  });
+
+  observer.observe(analyticsView, { attributes: true });
+}
+
+function renderAnalyticsCards() {
+  const archive = loadArchive();
+
+  if (!archive || archive.length === 0) return;
+
+  let totalProfit = 0;
+  let bestOpening = -Infinity;
+  let total100x = 0;
+  let totalGames = 0;
+  let totalSupers = 0;
+  let totalHidden = 0;
+
+  archive.forEach((opening) => {
+    let totalWin = 0;
+
+    for (const g of opening.games) {
+      if (g.win !== null && g.win !== undefined) {
+        totalWin += Number(g.win);
+      }
+
+      const bet = Number(g.bet);
+      const win = Number(g.win);
+
+      totalGames++;
+      if (g.isSuper) totalSupers++;
+      if (g.isHidden) totalHidden++;
+
+      if (win && bet && win / bet >= 100) {
+        total100x++;
+      }
+    }
+
+    const start = Number(opening.startBalance || 0);
+    const profit = totalWin - start;
+
+    totalProfit += profit;
+
+    if (profit > bestOpening) {
+      bestOpening = profit;
+    }
+  });
+
+  const totalOpenings = archive.length;
+
+  const profitEl = document.getElementById("analytics-total-profit");
+  const bestEl = document.getElementById("analytics-best-opening");
+  const hitsEl = document.getElementById("analytics-100x");
+  const openEl = document.getElementById("analytics-openings");
+  const gamesEl = document.getElementById("analytics-total-games");
+  const superEl = document.getElementById("analytics-super");
+  const hiddenEl = document.getElementById("analytics-hidden");
+
+  if (profitEl) profitEl.textContent = formatMoneyFromARS(totalProfit);
+  if (bestEl) bestEl.textContent = formatMoneyFromARS(bestOpening);
+  if (hitsEl) hitsEl.textContent = total100x;
+  if (openEl) openEl.textContent = totalOpenings;
+  if (gamesEl) gamesEl.textContent = totalGames;
+  if (superEl) superEl.textContent = totalSupers;
+  if (hiddenEl) hiddenEl.textContent = totalHidden;
+}
+
+function renderBiggestWins() {
+  const archive = loadArchive();
+  const tbody = document.getElementById("leaderboard-body");
+
+  if (!tbody) return;
+
+  const wins = [];
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      if (g.win !== null && g.win !== undefined) {
+        const bet = Number(g.bet);
+        const win = Number(g.win);
+
+        if (bet > 0) {
+          wins.push({
+            name: g.name,
+            win: win,
+            x: win / bet,
+          });
+        }
+      }
+    });
+  });
+
+  wins.sort((a, b) => b.x - a.x);
+
+  const top = wins.slice(0, 10);
+
+  tbody.innerHTML = "";
+
+  if (top.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4">No data yet.</td></tr>`;
+    return;
+  }
+
+  top.forEach((w, i) => {
+    const tr = document.createElement("tr");
+
+    let rank = i + 1;
+
+    if (i === 0) rank = "🥇";
+    else if (i === 1) rank = "🥈";
+    else if (i === 2) rank = "🥉";
+
+    tr.innerHTML = `
+      <td class="leaderboard-rank">${rank}</td>
+      <td>${w.name}</td>
+      <td>${formatMoneyFromARS(w.win)}</td>
+      <td class="leaderboard-x">${w.x.toFixed(1)}x</td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+function renderGameRTP() {
+  const archive = loadArchive();
+
+  const bestBody = document.getElementById("rtp-best");
+  const worstBody = document.getElementById("rtp-worst");
+
+  if (!bestBody || !worstBody) return;
+
+  const games = {};
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      if (g.win === null || g.win === undefined) return;
+
+      const name = g.name;
+
+      if (!games[name]) {
+        games[name] = {
+          bet: 0,
+          win: 0,
+        };
+      }
+
+      games[name].bet += Number(g.bet);
+      games[name].win += Number(g.win);
+    });
+  });
+
+  const list = Object.entries(games).map(([name, data]) => {
+    const rtp = data.win / data.bet;
+
+    return {
+      name,
+      rtp,
+    };
+  });
+
+  list.sort((a, b) => b.rtp - a.rtp);
+
+  const best = list.slice(0, 5);
+  const worst = [...list].reverse().slice(0, 5);
+
+  bestBody.innerHTML = "";
+  worstBody.innerHTML = "";
+
+  best.forEach((g, i) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${g.name}</td>
+      <td>${(g.rtp * 100).toFixed(1)}%</td>
+    `;
+
+    bestBody.appendChild(tr);
+  });
+
+  worst.forEach((g, i) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${g.name}</td>
+      <td>${(g.rtp * 100).toFixed(1)}%</td>
+    `;
+
+    worstBody.appendChild(tr);
+  });
+}
+
+function renderHotColdGames() {
+  const archive = loadArchive();
+
+  const hotBody = document.getElementById("hot-games");
+  const coldBody = document.getElementById("cold-games");
+
+  if (!hotBody || !coldBody) return;
+
+  const lastOpenings = archive.slice(-20);
+
+  const games = {};
+
+  lastOpenings.forEach((opening) => {
+    opening.games.forEach((g) => {
+      if (g.win === null || g.win === undefined) return;
+
+      const bet = Number(g.bet);
+      const win = Number(g.win);
+
+      if (!bet) return;
+
+      const name = g.name;
+
+      if (!games[name]) {
+        games[name] = {
+          totalX: 0,
+          count: 0,
+        };
+      }
+
+      games[name].totalX += win / bet;
+      games[name].count++;
+    });
+  });
+
+  const list = Object.entries(games).map(([name, data]) => {
+    return {
+      name,
+      avg: data.totalX / data.count,
+      count: data.count,
+    };
+  });
+
+  list.sort((a, b) => b.avg - a.avg);
+
+  const hot = list.slice(0, 5);
+  const cold = [...list].reverse().slice(0, 5);
+
+  hotBody.innerHTML = "";
+  coldBody.innerHTML = "";
+
+  hot.forEach((g, i) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+  <td>${i + 1}</td>
+  <td>${g.name}</td>
+  <td>${g.avg.toFixed(1)}x</td>
+`;
+
+    hotBody.appendChild(tr);
+  });
+
+  cold.forEach((g, i) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+  <td>${i + 1}</td>
+  <td>${g.name}</td>
+  <td>${g.avg.toFixed(1)}x</td>
+`;
+
+    coldBody.appendChild(tr);
+  });
+}
+
+function renderLuckMeter() {
+  const archive = loadArchive();
+
+  const lastOpenings = archive.slice(-5);
+
+  let totalBet = 0;
+  let totalWin = 0;
+
+  lastOpenings.forEach((opening) => {
+    opening.games.forEach((g) => {
+      if (g.win === null || g.win === undefined) return;
+
+      totalBet += Number(g.bet);
+      totalWin += Number(g.win);
+    });
+  });
+
+  const luckEl = document.getElementById("analytics-luck");
+  const textEl = document.getElementById("analytics-luck-text");
+
+  if (!luckEl || !textEl) return;
+
+  if (totalBet === 0) {
+    luckEl.textContent = "-";
+    textEl.textContent = "";
+    return;
+  }
+
+  const rtp = (totalWin / totalBet) * 100;
+
+  luckEl.textContent = rtp.toFixed(1) + "%";
+
+  if (rtp >= 120) {
+    textEl.textContent = "🔥 VERY LUCKY (last 5 openings)";
+  } else if (rtp >= 105) {
+    textEl.textContent = "🙂 Lucky (last 5 openings)";
+  } else if (rtp >= 95) {
+    textEl.textContent = "😐 Normal variance (last 5 openings)";
+  } else if (rtp >= 80) {
+    textEl.textContent = "😬 Unlucky (last 5 openings)";
+  } else {
+    textEl.textContent = "💀 VERY UNLUCKY (last 5 openings)";
+  }
+}
+
+function renderMostPlayedGames() {
+  const archive = loadArchive();
+  const tbody = document.getElementById("most-played-games");
+
+  if (!tbody) return;
+
+  const games = {};
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      const name = g.name;
+
+      if (!games[name]) {
+        games[name] = 0;
+      }
+
+      games[name]++;
+    });
+  });
+
+  const list = Object.entries(games)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  tbody.innerHTML = "";
+
+  if (list.length === 0) {
+    tbody.innerHTML = "<tr><td>No data yet.</td></tr>";
+    return;
+  }
+
+  list.forEach((g, i) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${g.name}</td>
+      <td>${g.count}</td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+function renderWorstROIGames() {
+  const archive = loadArchive();
+  const tbody = document.getElementById("worst-roi-games");
+
+  if (!tbody) return;
+
+  const games = {};
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      if (g.win === null || g.win === undefined) return;
+
+      const name = g.name;
+
+      if (!games[name]) {
+        games[name] = {
+          bet: 0,
+          win: 0,
+        };
+      }
+
+      games[name].bet += Number(g.bet) * 100;
+      games[name].win += Number(g.win);
+    });
+  });
+
+  const list = Object.entries(games)
+    .map(([name, data]) => ({
+      name,
+      roi: (data.win - data.bet) / data.bet,
+    }))
+    .sort((a, b) => a.roi - b.roi)
+    .slice(0, 10);
+
+  tbody.innerHTML = "";
+
+  if (list.length === 0) {
+    tbody.innerHTML = "<tr><td colspan='3'>No data yet.</td></tr>";
+    return;
+  }
+
+  list.forEach((g, i) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${g.name}</td>
+      <td>${(g.roi * 100).toFixed(1)}%</td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+function calcRTP(win, bet) {
+  return win / bet;
+}
+
+function calcROI(win, bet) {
+  return (win - bet) / bet;
+}
+
+function renderGameProfitChart() {
+  const archive = loadArchive();
+  const games = {};
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      if (g.win === null || g.win === undefined) return;
+
+      const name = g.name;
+
+      const bet = Number(g.bet) * 100;
+      const win = Number(g.win);
+
+      if (!games[name]) {
+        games[name] = 0;
+      }
+      games[name] += win - bet;
+    });
+  });
+
+  const list = Object.entries(games)
+    .map(([name, profit]) => ({ name, profit }))
+    .sort((a, b) => b.profit - a.profit)
+    .slice(0, 10);
+
+  const labels = list.map((g) => g.name);
+  const profits = list.map((g) => fromARS(g.profit, fx.display));
+
+  const ctx = document.getElementById("gameProfitChart");
+
+  if (!ctx) return;
+
+  new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Profit (" + fx.display + ")",
+          data: profits,
+
+          borderRadius: 8,
+          borderSkipped: false,
+
+          backgroundColor: profits.map((v) =>
+            v >= 0 ? "rgba(80,220,120,0.7)" : "rgba(255,80,80,0.7)",
+          ),
+
+          borderColor: profits.map((v) =>
+            v >= 0 ? "rgba(80,220,120,1)" : "rgba(255,80,80,1)",
+          ),
+
+          borderWidth: 2,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+      },
+      scales: {
+        x: {
+          ticks: {
+            color: "#fff",
+          },
+        },
+        y: {
+          ticks: {
+            color: "#fff",
+          },
+        },
+      },
+    },
+  });
+}
+
+let bankrollChart;
+
+function renderBankrollChart() {
+  const archive = loadArchive();
+  if (!archive || archive.length === 0) return;
+
+  const labels = [];
+  const bankrollValues = [];
+
+  let bankroll = 0;
+
+  archive.forEach((opening) => {
+    let totalWin = 0;
+
+    for (const g of opening.games) {
+      if (g.win !== null && g.win !== undefined) {
+        totalWin += Number(g.win);
+      }
+    }
+
+    const start = Number(opening.startBalance || 0);
+    const profit = totalWin - start;
+
+    bankroll += profit;
+
+    labels.push("Opening #" + opening.number);
+    bankrollValues.push(fromARS(bankroll, fx.display));
+  });
+
+  const canvas = document.getElementById("bankrollChart");
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+
+  if (bankrollChart) {
+    bankrollChart.destroy();
+  }
+
+  bankrollChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Bankroll (" + fx.display + ")",
+          data: bankrollValues,
+
+          tension: 0.35,
+          borderWidth: 3,
+          pointRadius: 4,
+
+          segment: {
+            borderColor: (ctx) => {
+              const y0 = ctx.p0.parsed.y;
+              const y1 = ctx.p1.parsed.y;
+              return y1 >= y0 ? "rgba(80,220,120,1)" : "rgba(255,80,80,1)";
+            },
+          },
+
+          borderColor: "rgba(80,220,120,1)",
+          backgroundColor: "rgba(80,220,120,0.12)",
+          fill: true,
+        },
+      ],
+    },
+
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+
+      animation: {
+        duration: 900,
+        easing: "easeOutQuart",
+      },
+
+      plugins: {
+        legend: {
+          labels: {
+            color: "#fff",
+            boxWidth: 0,
+            boxHeight: 0,
+          },
+        },
+      },
+
+      scales: {
+        x: {
+          ticks: { color: "#fff" },
+          grid: {
+            color: "rgba(255,255,255,0.05)",
+          },
+        },
+
+        y: {
+          ticks: { color: "#fff" },
+          grid: {
+            color: "rgba(255,255,255,0.05)",
+          },
+        },
+      },
+    },
+  });
+}
+
+function renderHitStats() {
+  const archive = loadArchive();
+  if (!archive) return;
+
+  let hits50 = 0;
+  let hits100 = 0;
+  let hits500 = 0;
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      const win = Number(g.win);
+      const bet = Number(g.bet);
+
+      if (!win || !bet) return;
+
+      const x = win / bet;
+
+      if (x >= 50) hits50++;
+      if (x >= 100) hits100++;
+      if (x >= 500) hits500++;
+    });
+  });
+
+  document.getElementById("hit-50x").textContent = hits50;
+  document.getElementById("hit-100x").textContent = hits100;
+  document.getElementById("hit-500x").textContent = hits500;
+}
+
+let winDistributionChart;
+
+function renderWinDistributionChart() {
+  const archive = loadArchive();
+  if (!archive) return;
+
+  let bucket0_10 = 0;
+  let bucket10_50 = 0;
+  let bucket50_100 = 0;
+  let bucket100_500 = 0;
+  let bucket500 = 0;
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      const win = Number(g.win);
+      const bet = Number(g.bet);
+
+      if (!win || !bet) return;
+
+      const x = win / bet;
+
+      if (x < 10) bucket0_10++;
+      else if (x < 50) bucket10_50++;
+      else if (x < 100) bucket50_100++;
+      else if (x < 500) bucket100_500++;
+      else bucket500++;
+    });
+  });
+
+  const data = [
+    bucket0_10,
+    bucket10_50,
+    bucket50_100,
+    bucket100_500,
+    bucket500,
+  ];
+
+  const ctx = document.getElementById("winDistributionChart");
+  if (!ctx) return;
+
+  if (winDistributionChart) {
+    winDistributionChart.destroy();
+  }
+
+  winDistributionChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: ["0–10x", "10–50x", "50–100x", "100–500x", "500x+"],
+      datasets: [
+        {
+          label: "Wins",
+          data: data,
+          borderWidth: 2,
+          borderRadius: 8,
+          backgroundColor: [
+            "rgba(255,99,132,0.7)",
+            "rgba(255,159,64,0.7)",
+            "rgba(255,205,86,0.7)",
+            "rgba(75,192,192,0.7)",
+            "rgba(54,162,235,0.7)",
+          ],
+        },
+      ],
+    },
+
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+
+      plugins: {
+        legend: { display: false },
+      },
+
+      scales: {
+        x: {
+          ticks: { color: "#fff" },
+          grid: { color: "rgba(255,255,255,0.05)" },
+        },
+        y: {
+          ticks: { color: "#fff" },
+          grid: { color: "rgba(255,255,255,0.05)" },
+        },
+      },
+    },
+  });
+}
+
+function renderMedianX() {
+  const archive = loadArchive();
+  if (!archive) return;
+
+  const xs = [];
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      const win = Number(g.win);
+      const bet = Number(g.bet);
+
+      if (g.win === null || g.win === undefined) return;
+      if (!bet) return;
+
+      xs.push(win / bet);
+    });
+  });
+
+  if (!xs.length) {
+    document.getElementById("analytics-median-x").textContent = "-";
+    return;
+  }
+
+  xs.sort((a, b) => a - b);
+
+  const mid = Math.floor(xs.length / 2);
+
+  let median;
+
+  if (xs.length % 2 === 0) {
+    median = (xs[mid - 1] + xs[mid]) / 2;
+  } else {
+    median = xs[mid];
+  }
+
+  document.getElementById("analytics-median-x").textContent =
+    median.toFixed(2) + "x";
+}
+
+function renderHighestX() {
+  const archive = loadArchive();
+  if (!archive) return;
+
+  let maxX = 0;
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      const win = Number(g.win);
+      const bet = Number(g.bet);
+
+      if (g.win === null || g.win === undefined) return;
+      if (!bet) return;
+
+      const x = win / bet;
+
+      if (x > maxX) {
+        maxX = x;
+      }
+    });
+  });
+
+  const el = document.getElementById("analytics-highest-x");
+
+  if (!el) return;
+
+  el.textContent = maxX ? maxX.toFixed(2) + "x" : "-";
+}
+
+function renderBestOpening() {
+  const archive = loadArchive();
+  if (!archive || !archive.length) return;
+
+  let bestProfit = -Infinity;
+  let bestOpening = null;
+
+  archive.forEach((opening, index) => {
+    let totalWin = 0;
+    let totalBet = 0;
+
+    opening.games.forEach((g) => {
+      const win = Number(g.win);
+      const bet = Number(g.bet);
+
+      if (g.win === null || g.win === undefined) return;
+      if (!bet) return;
+
+      totalWin += win;
+      totalBet += bet;
+    });
+
+    const profit = totalWin - totalBet;
+
+    if (profit > bestProfit) {
+      bestProfit = profit;
+      bestOpening = index + 1;
+    }
+  });
+
+  const profitDisplay = fromARS(bestProfit, fx.display);
+
+  document.getElementById("analytics-best-opening-profit").textContent =
+    profitDisplay.toFixed(2) + " " + fx.display;
+
+  document.getElementById("analytics-best-opening-id").textContent =
+    "Opening #" + bestOpening;
+}
+
+function getX(g) {
+  const win = Number(g.win);
+  const bet = Number(g.bet);
+  if (!bet) return null;
+  return win / bet;
+}
+
+function renderGameHeatmap() {
+  const archive = loadArchive();
+  if (!archive) return;
+
+  const gameStats = {};
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      const win = Number(g.win);
+      const bet = Number(g.bet);
+
+      if (g.win === null || g.win === undefined) return;
+      if (!bet) return;
+
+      const x = win / bet;
+      const name = g.name;
+
+      if (!gameStats[name]) {
+        gameStats[name] = { totalX: 0, count: 0 };
+      }
+
+      gameStats[name].totalX += x;
+      gameStats[name].count++;
+    });
+  });
+
+  const container = document.getElementById("heatmap-container");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  const sortedGames = Object.entries(gameStats).sort(
+    (a, b) => b[1].totalX / b[1].count - a[1].totalX / a[1].count,
+  );
+
+  sortedGames.forEach(([game, stats]) => {
+    const avgX = stats.totalX / stats.count;
+
+    const div = document.createElement("div");
+    div.classList.add("heatmap-item");
+
+    const maxX = 200;
+
+    let intensity = Math.min(avgX / maxX, 1);
+
+    let r, g;
+
+    if (avgX < 30) {
+      r = 220;
+      g = Math.floor(120 * intensity);
+    } else {
+      r = Math.floor(220 * (1 - intensity));
+      g = 200;
+    }
+
+    div.style.backgroundColor = `rgba(${r}, ${g}, 80, 0.35)`;
+
+    div.innerHTML =
+      "<div>" +
+      game +
+      "</div>" +
+      "<div style='margin-top:4px'>" +
+      avgX.toFixed(2) +
+      "x" +
+      "</div>" +
+      "<div style='font-size:11px; opacity:0.6'>" +
+      stats.count +
+      " plays" +
+      "</div>";
+
+    container.appendChild(div);
+  });
+}
+
+function renderBestGameEver() {
+  const archive = loadArchive();
+  if (!archive) return;
+
+  const gameProfits = {};
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      const win = Number(g.win);
+      const bet = Number(g.bet);
+
+      if (g.win === null || g.win === undefined) return;
+      if (!bet) return;
+
+      const profit = win - bet; // sama loogika mis sul mujal trackeris
+      const name = g.name;
+
+      if (!gameProfits[name]) {
+        gameProfits[name] = 0;
+      }
+
+      gameProfits[name] += profit;
+    });
+  });
+
+  let bestGame = null;
+  let bestProfit = -Infinity;
+
+  Object.entries(gameProfits).forEach(([game, profit]) => {
+    if (profit > bestProfit) {
+      bestProfit = profit;
+      bestGame = game;
+    }
+  });
+
+  const profitDisplay = fromARS(bestProfit, fx.display);
+
+  document.getElementById("analytics-best-game-profit").textContent =
+    profitDisplay.toFixed(2) + " " + fx.display;
+
+  document.getElementById("analytics-best-game-name").textContent = bestGame;
+}
+
+function renderWorstGameEver() {
+  const archive = loadArchive();
+  if (!archive) return;
+
+  const gameProfits = {};
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      const win = Number(g.win);
+      const bet = Number(g.bet);
+
+      if (g.win === null || g.win === undefined) return;
+      if (!bet) return;
+
+      const profit = win - bet;
+      const name = g.name;
+
+      if (!gameProfits[name]) {
+        gameProfits[name] = 0;
+      }
+
+      gameProfits[name] += profit;
+    });
+  });
+
+  let worstGame = null;
+  let worstProfit = Infinity;
+
+  Object.entries(gameProfits).forEach(([game, profit]) => {
+    if (profit < worstProfit) {
+      worstProfit = profit;
+      worstGame = game;
+    }
+  });
+
+  const profitDisplay = fromARS(worstProfit, fx.display);
+
+  document.getElementById("analytics-worst-game-profit").textContent =
+    profitDisplay.toFixed(2) + " " + fx.display;
+
+  document.getElementById("analytics-worst-game-name").textContent = worstGame;
+}
+
+function renderGamePerformance() {
+  const archive = loadArchive();
+  if (!archive) return;
+
+  const stats = {};
+
+  archive.forEach((opening) => {
+    opening.games.forEach((g) => {
+      const win = Number(g.win);
+      const bet = Number(g.bet);
+
+      if (g.win === null || g.win === undefined) return;
+      if (!bet) return;
+
+      const name = g.name;
+      const x = win / bet;
+      const profit = win - bet;
+
+      if (!stats[name]) {
+        stats[name] = {
+          profit: 0,
+          totalX: 0,
+          plays: 0,
+        };
+      }
+
+      stats[name].profit += profit;
+      stats[name].totalX += x;
+      stats[name].plays++;
+    });
+  });
+
+  const rows = Object.entries(stats)
+    .map(([game, s]) => ({
+      game,
+      profit: s.profit,
+      plays: s.plays,
+      avgX: s.totalX / s.plays,
+    }))
+    .sort((a, b) => b.profit - a.profit);
+
+  const tbody = document.getElementById("game-performance-body");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  rows.forEach((r) => {
+    const profitDisplay = fromARS(r.profit, fx.display);
+
+    const tr = document.createElement("tr");
+
+    tr.innerHTML =
+      "<td>" +
+      r.game +
+      "</td>" +
+      "<td>" +
+      profitDisplay.toFixed(2) +
+      " " +
+      fx.display +
+      "</td>" +
+      "<td>" +
+      r.plays +
+      "</td>" +
+      "<td>" +
+      r.avgX.toFixed(2) +
+      "x</td>";
+
+    tbody.appendChild(tr);
+  });
+}
+
+function renderSlots() {
+  const tbody = document.getElementById("slots-body");
+
+  const search = document.getElementById("slot-search").value.toLowerCase();
+
+  const provider = document.getElementById("provider-filter").value;
+
+  tbody.innerHTML = "";
+
+  SLOT_DATABASE.filter(
+    (slot) =>
+      (slot.name.toLowerCase().includes(search) ||
+        slot.provider.toLowerCase().includes(search)) &&
+      (provider === "all" || slot.provider === provider),
+  ).forEach((slot) => {
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+        <td>${slot.name}</td>
+        <td>${slot.provider}</td>
+        <td>${slot.maxWin}</td>
+        <td><a href="${slot.demo}" target="_blank">Demo</a></td>
+      `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+function populateProviderFilter() {
+  const filter = document.getElementById("provider-filter");
+
+  filter.innerHTML = '<option value="all">All Providers</option>';
+
+  const providers = [...new Set(SLOT_DATABASE.map((s) => s.provider))];
+
+  providers.forEach((provider) => {
+    const option = document.createElement("option");
+
+    option.value = provider;
+    option.textContent = provider;
+
+    filter.appendChild(option);
+  });
+}
+
+const slotSearchInput = document.getElementById("slot-search");
+const providerFilter = document.getElementById("provider-filter");
+
+if (slotSearchInput) {
+  slotSearchInput.addEventListener("input", renderSlots);
+}
+
+if (providerFilter) {
+  providerFilter.addEventListener("change", renderSlots);
+}
+
+console.log("app.js fully initialized✅");
